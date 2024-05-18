@@ -4,42 +4,34 @@
     <router-link to="/about">About</router-link> |
     <router-link to="/feed">Feed</router-link> |
     <router-link to="/register">Register</router-link> |
-    <router-link to="/signin">SignIn</router-link> |
-    <button v-if="isLoggedIn"  @click="handleSignOut">Sign Out</button>
+    <router-link to="/signin">SignIn</router-link>
+    <button class="signOut" v-if="isLoggedIn" @click="handleSignOut">Sign Out</button>
   </nav>
   <router-view/>
 </template>
 
 <script setup>
 // Want the signout to be available when user is signed In
-import {onMounted, ref} from "vue";
-import { useRouter} from "vue-router";
-
-
-//Use a hook called onoff state changed
-import { getAuth,onAuthStateChanged,signOut} from "firebase/auth";
+import { onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
 
 const isLoggedIn = ref(false);
 const router = useRouter();
-//Want to do it on onMountedHook so we have access to firebase once app is created
+const auth = getAuth();
 
-onMounted(()=>{
-    auth = getAuth();
-    onAuthStateChanged(auth,(user) =>{
-        if (user){
-          isLoggedIn.value = true;
-        }else{
-          isLoggedIn.value = false;
-        }
-    });
+// Use a hook called onAuthStateChanged
+onMounted(() => {
+  onAuthStateChanged(auth, (user) => {
+    isLoggedIn.value = !!user;
+  });
 });
 
-  const handleSignOut = ()=>{
-      signOut(auth).then(()=>{
-        router.push("/");
-      });
-  };
-
+const handleSignOut = () => {
+  signOut(auth).then(() => {
+    router.push('/');
+  });
+};
 </script>
 
 <style lang="scss">

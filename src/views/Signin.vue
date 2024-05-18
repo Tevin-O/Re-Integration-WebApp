@@ -9,20 +9,26 @@
 
 <script setup>
     import {ref} from 'vue';
-    import {getAuth,signInWithEmailAndPassword} from "firebase/auth";
+    import {getAuth,signInWithEmailAndPassword,GoogleAuthProvider,signInWithPopup} from "firebase/auth";
     import {useRouter} from 'vue-router' //import router
     const email = ref("");
     const password = ref("");
     const errMsg = ref() //error message
     const router = useRouter(); // get a reference to our vue router
+    const auth = getAuth();
 
     const register = ()=>{
         //need .value because of ref()
         signInWithEmailAndPassword(getAuth(),email.value,password.value)
             .then((data)=>{
                 console.log("Successfully signed In");
-                console.log(auth.currentUser);
-                router.push('/feed') //redirect user after registration to the feed page 
+              //  console.log(auth.currentUser);
+              if(auth.currentUser.emailVerified){
+                router.push('/feed') //redirect user after registration to the feed page
+              }else{
+                alert("Please verify your email before accessing this page")
+                router.push('/verify-email');
+              }
             })
             .catch((error)=>{
                 console.log(error.code);
@@ -48,7 +54,12 @@
         signInWithPopup(getAuth(),provider)
         .then((result) =>{
             console.log(result.user);
-            router.push("/feed");
+            if(result.user.emailVerified){
+                router.push('/feed') //redirect user to feed page if email is verified
+            }else{
+                alert('Please verify your email before accessing the feed');
+                router.push('/verify-email') 
+            }
         })
         .catch((error)=>{
             //handle error
