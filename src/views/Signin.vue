@@ -1,9 +1,10 @@
 <template>
+
     <h1>Sign In</h1>
     <p><input  v-model="email" type="text" placeholder="Email"></p>
     <p><input  v-model="password" type="password" placeholder="Password"></p>
     <p v-if="errMsg">{{errMsg}}</p>
-    <p><button @click="register">Login</button></p>
+    <p><button @click="login">Login</button></p>
     <p><button @click="signInWithGoogle">Sign In With Google</button></p>
 </template>
 
@@ -17,12 +18,12 @@
     const router = useRouter(); // get a reference to our vue router
     const auth = getAuth();
 
-    const register = ()=>{
+    const login = ()=>{
         //need .value because of ref()
         signInWithEmailAndPassword(getAuth(),email.value,password.value)
-            .then((data)=>{
+            .then((userCredential)=>{
                 console.log("Successfully signed In");
-              //  console.log(auth.currentUser);
+              // console.log(auth.currentUser);
               if(auth.currentUser.emailVerified){
                 router.push('/feed') //redirect user after registration to the feed page
               }else{
@@ -63,6 +64,8 @@
         })
         .catch((error)=>{
             //handle error
+            console.error('Google sign-in error', error);
+            alert('Failed to sign in with Google.Please try again');
         });
     }
 </script>

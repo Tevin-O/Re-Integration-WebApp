@@ -77,7 +77,7 @@ router.beforeEach(async (to, from, next) => {
       }
     } else {
       alert('You do not have access to this page.');
-      next('/signin');
+      next('/');
     }
   } else {
     next();

@@ -1,7 +1,7 @@
 <template>
     <v-app-bar app color="black" dark flat class="px-12" >
       <v-btn >
-        <v-icon color="yellow" left class="mr-2">fas fa-signature</v-icon> AHLAN
+        <v-icon color="yellow" left class="mr-2">fas fa-signature</v-icon> FH
       </v-btn>
       
   
@@ -13,6 +13,10 @@
       <v-btn text @click="scroll('testimonials')"  >Testimonials</v-btn>   
       <v-btn text @click="scroll('howtohelp')"  >How to help</v-btn>
       <v-btn text @click="scroll('contact')"  >Contact Us</v-btn>
+      <v-btn icon @click="register">
+        <v-icon color="white">mdi-account</v-icon>
+      </v-btn>
+
     </v-app-bar>
   </template>
   
@@ -23,6 +27,9 @@
         const element = document.getElementById(refName);
         element.scrollIntoView({ behavior: "smooth" });
       },
+      register() {
+      this.$router.push({ name: 'register' });
+    }
     },
   };
   </script>
