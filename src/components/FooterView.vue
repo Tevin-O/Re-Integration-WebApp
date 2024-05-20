@@ -31,6 +31,13 @@
               variant="plain"
               color="white"
             ></v-btn>
+            <v-btn
+              class="mx-4"
+              icon
+              variant="plain"
+              color="white"
+              @click="register"
+            ></v-btn>
           </v-card-text>
   
           <v-card-text class="text-white">

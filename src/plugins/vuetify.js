@@ -15,7 +15,7 @@ export default createVuetify(
   icons: {
     defaultSet: 'fa',
     aliases,
-    iconfont: 'fa' || 'md',
+    iconfont: 'fa' || 'md' || 'mdi',
     sets: {
       fa,
     },
