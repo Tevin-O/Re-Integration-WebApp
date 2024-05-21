@@ -28,7 +28,7 @@
         element.scrollIntoView({ behavior: "smooth" });
       },
       register() {
-      this.$router.push({ name: 'register2' });
+      this.$router.push({ name: 'loginui' });
     }
     },
   };

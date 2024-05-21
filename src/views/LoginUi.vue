@@ -22,8 +22,9 @@ import Login from "@/components/Login.vue";
 import ForgotPassword from "@/components/ForgotPassword.vue";
 import Register2 from "@/components/Register2.vue";
 
+
 export default {
-  name: 'LoginUi',
+  name: 'loginui',
   data() {
     return {
       login: true,

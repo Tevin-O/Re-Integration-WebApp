@@ -8,7 +8,7 @@
       ></v-img>
         </slot>
   
-        <v-form @submit.prevent="login()" ref="form">
+        <v-form @submit.prevent="login" ref="form">
       <v-card
         class="mx-auto pa-12 pb-8"
         elevation="8"
@@ -80,105 +80,65 @@
                               <v-icon color="red">fab fa-google</v-icon>
                             </v-btn>
                         </div>
-        <v-card-text class="text-center">
-          <a
-            class="text-blue text-decoration-none"
-            href="#"
-            rel="noopener noreferrer"
-            target="_blank"
-            style="pointer-events: none;"
-          >
-            Sign up now <v-icon icon="mdi-chevron-right"></v-icon>
-          </a>
-        </v-card-text>
+                        <v-card-text class="text-center">
+                          <a class="text-blue text-decoration-none" href="#" @click.prevent="navigateToRegister">
+                            Sign up now <v-icon icon="mdi-chevron-right"></v-icon>
+                          </a>
+                        </v-card-text>
       </v-card>
         </v-form>
     </div>
   </template>
 
   <script setup>
-  import {ref} from 'vue';
-  import {getAuth,createUserWithEmailAndPassword,sendEmailVerification,GoogleAuthProvider,signInWithPopup} from "firebase/auth";
-    import { signInWithEmailAndPassword } from "firebase/auth";
-    import { onMounted } from 'vue';
-    import { onAuthStateChanged, signOut } from 'firebase/auth';
-     // Want the signout to be available when user is signed In
-     const email = ref("");
-    const password = ref("");
-    const router = useRouter(); // get a reference to our vue router
-    const auth = getAuth()// from firebase authentication
-    const isLoggedIn = ref(false);
-    const register = ()=>{
-        //need .value because of ref()
-        createUserWithEmailAndPassword(getAuth(),email.value,password.value)
-            .then((userCredential)=>{
-                console.log("Successfully registered");
-                sendEmailVerification(userCredential.user).then(()=>{
-                    alert("Verification email sent.Please check your inbox");
-                    router.push('/about') //redirect user after registration to the about page 
-                })
-               // console.log(auth.currentUser);
-            })
-            .catch((error)=>{
-                console.log(error.code);
-                alert(error.message);
-            });
-    };
-
-    const signInWithGoogle = ()=>{
-        const provider = new GoogleAuthProvider();
-        signInWithPopup(getAuth(),provider)
-        .then((result) =>{
-            console.log(result.user);
-            router.push("/feed");
-        })
-        .catch((error)=>{
-            //handle error
-            console.error('Google sign-in error', error);
-            alert('Failed to sign in with Google.Please try again');
-        });
-    }
-
-    const login = ()=>{
-        //need .value because of ref()
-        signInWithEmailAndPassword(getAuth(),email.value,password.value)
-            .then((userCredential)=>{
-                console.log("Successfully signed In",userCredential);
-              // console.log(auth.currentUser);
-              if(auth.currentUser.emailVerified){
-                router.push('/feed') //redirect user after registration to the feed page
-              }else{
-                alert("Please verify your email before accessing this page")
-                router.push('/verify-email');
-              }
-            })
-            .catch((error)=>{
-                console.log(error.code);
-                switch(error.code){
-                    case "auth/invalid-email":
-                        errMsg.value = "Invalid email";
-                        break;
-                        case "auth/user-not-found":
-                        errMsg.value = "No account with that email was found";
-                        break;
-                        case "auth/wrong-password":
-                        errMsg.value = "Incorrect password";
-                        break;
-                        default:
-                        errMsg.value = "Email or password was incorrect";
-                        break;
-                }
-            });
-            onMounted(() => {
-            onAuthStateChanged(auth, (user) => {
-            isLoggedIn.value = !!user;
-             });
-             });
-             };
-
-             const handleSignOut = () => {
-             signOut(auth).then(() => {
-             router.push('/');
-             });
-            }; 
-</script>
+  import { ref, onMounted } from 'vue';
+  import { useRouter } from 'vue-router';
+  import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from 'firebase/auth';
+  
+  const email = ref("");
+  const password = ref("");
+  const visible = ref(false);
+  const router = useRouter();
+  const auth = getAuth();
+  const isLoggedIn = ref(false);
+  
+  const signInWithGoogle = () => {
+    const provider = new GoogleAuthProvider();
+    signInWithPopup(auth, provider)
+      .then((result) => {
+        console.log(result.user);
+        router.push("/feed");
+      })
+      .catch((error) => {
+        console.error('Google sign-in error', error);
+        alert('Failed to sign in with Google. Please try again.');
+      });
+  };
+  
+  const login = () => {
+    signInWithEmailAndPassword(auth, email.value, password.value)
+      .then((userCredential) => {
+        console.log("Successfully signed In", userCredential);
+        if (auth.currentUser.emailVerified) {
+          router.push('/feed'); // Redirect user after login to the feed page
+        } else {
+          alert("Please verify your email before accessing this page");
+          router.push('/verify-email');
+        }
+      })
+      .catch((error) => {
+        console.log(error.code);
+        alert(error.message);
+      });
+  };
+  
+  const navigateToRegister = () => {
+    router.push('/register2');
+  };
+  
+  onMounted(() => {
+    onAuthStateChanged(auth, (user) => {
+      isLoggedIn.value = !!user;
+    });
+  });
+  </script>
