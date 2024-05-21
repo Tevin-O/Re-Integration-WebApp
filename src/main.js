@@ -7,6 +7,21 @@ import { loadFonts } from './plugins/webfontloader'
 import 'material-design-icons-iconfont/dist/material-design-icons.css'
 import '@mdi/font/css/materialdesignicons.css'
 
+import * as components from './components'
+
+const componentList = components?.default
+
+const VuetifyComponents = {
+    install(app) {
+        Object.keys(componentList).forEach((name) => {
+           app.component(name, componentList[name])
+        })
+    },
+}
+ 
+ 
+export default VuetifyComponents
+
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
@@ -30,6 +45,7 @@ initializeApp(firebaseConfig);
 // const auth = getAuth(app);
 
 loadFonts()
+
 
 createApp(App)
   .use(router)

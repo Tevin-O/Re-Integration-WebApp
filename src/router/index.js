@@ -1,9 +1,12 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import HomeView from '../views/HomeView.vue';
-import Register from '../views/Register.vue';
+import LoginUi from '../views/LoginUi.vue';
 import Feed from '../views/Feed.vue';
 import Signin from '../views/Signin.vue';
 import VerifyEmail from '../views/VerifyEmail.vue'; // Ensure you have this view
+import Register2 from '../components/Register2.vue';
+import ForgotPassword from '../components/ForgotPassword.vue';
+import Login from '../components/Login.vue';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 
 const routes = [
@@ -18,9 +21,24 @@ const routes = [
     component: () => import(/* webpackChunkName: "about" */ '../views/AboutView.vue')
   },
   {
-    path: '/register',
-    name: 'register',
-    component: Register
+    path: '/loginui',
+    name: 'loginui',
+    component: LoginUi
+  },
+  {
+    path: '/forgotpassword',
+    name: 'forgotpassword',
+    component: ForgotPassword
+  },
+  {
+    path: '/login',
+    name: 'login',
+    component: Login
+  },
+  {
+    path: '/register2',
+    name: 'register2',
+    component: Register2
   },
   {
     path: '/feed',
