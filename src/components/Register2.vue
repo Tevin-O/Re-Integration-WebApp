@@ -4,7 +4,7 @@
         <h1 class="mb-2">Register</h1>
       </div>
       <v-card-text>
-        <v-form>
+        <v-form @submit.prevent="register">
           <v-text-field
             label="Enter your Name"
             name="name"
@@ -40,11 +40,11 @@
             class="rounded-0"
             outlined
           ></v-text-field>
-          <v-btn class="rounded-0" color="#000000" x-large block dark @click="register()">Register</v-btn>
+          <v-btn class="rounded-0" color="#000000" x-large block dark type="submit">Register</v-btn>
           <v-card-actions class="text--secondary">
             <v-spacer></v-spacer>
             Already have an account?
-            <a href="#" class="pl-2" style="color: #000000">Sign In</a>
+            <router-link to="/login" class="pl-2" style="color: #000000">Sign In</router-link>
           </v-card-actions>
         </v-form>
       </v-card-text>
