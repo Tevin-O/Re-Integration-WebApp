@@ -1,13 +1,12 @@
 <template>
     <div>
-        <slot name="logo">
+      <!--  <slot name="logo">
       <v-img
         class="mx-auto my-6"
         max-width="228"
         src="https://cdn.vuetifyjs.com/docs/images/logos/vuetify-logo-v3-slim-text-light.svg"
       ></v-img>
-        </slot>
-  
+        </slot>-->
         <v-form @submit.prevent="login" ref="form">
       <v-card
         class="mx-auto pa-12 pb-8"
@@ -21,7 +20,7 @@
           v-model="email"
           density="compact"
           :placeholder="Emailplease"
-          :rules="[v => !!v || 'Item is required']"
+          :rules="[v => !!v || 'Email is required']"
           prepend-inner-icon="mdi-email-outline"
           variant="outlined"
         ></v-text-field>
@@ -29,14 +28,12 @@
         <div class="text-subtitle-1 text-medium-emphasis d-flex align-center justify-space-between">
           Password
   
-          <a
-            class="text-caption text-decoration-none text-blue"
-            href="#"
-            rel="noopener noreferrer"
-            target="_blank"
-            style="pointer-events: none;"
-          >
-            Forgot login password?</a>
+          <router-link
+          class="text-caption text-decoration-none text-blue"
+          to="/forgotpassword"
+        >
+          Forgot login password?
+        </router-link>
         </div>
   
         <v-text-field
@@ -45,7 +42,7 @@
           :type="visible ? 'text' : 'password'"
           density="compact"
           :placeholder="passwordPlaceholder"
-          :rules="[v => !!v || 'Item is required']"
+          :rules="[v => !!v || 'Password is required']"
           prepend-inner-icon="mdi-lock-outline"
           variant="outlined"
           @click:append-inner="visible = !visible"
@@ -76,17 +73,20 @@
 
         <h5 class="text-center grey--text mt-4 mb-3">Or Sign up using</h5>
                           <div class="d-flex justify-space-between align-center mx-10 mb-11">
-                            <v-btn depressed outlined color="grey" @click="signInWithGoogle">
+                            <v-btn depressed outlined color="grey" @click="signInWithGoogle" class="d-flex align-center justify-center" style="height: 56px; width: 56px;" >
                               <v-icon color="red">fab fa-google</v-icon>
                             </v-btn>
                         </div>
                         <v-card-text class="text-center">
-                          <a class="text-blue text-decoration-none" href="#" @click.prevent="navigateToRegister">
-                            Sign up now <v-icon icon="mdi-chevron-right"></v-icon>
-                          </a>
+                          <router-link
+                       class="text-blue text-decoration-none"
+                       to="/register2"
+                       >
+                      Sign up now <v-icon icon="mdi-chevron-right"></v-icon>
+                      </router-link>
                         </v-card-text>
-      </v-card>
-        </v-form>
+                       </v-card>
+                      </v-form>
     </div>
   </template>
 
@@ -130,10 +130,6 @@
         console.log(error.code);
         alert(error.message);
       });
-  };
-  
-  const navigateToRegister = () => {
-    router.push('/register2');
   };
   
   onMounted(() => {
