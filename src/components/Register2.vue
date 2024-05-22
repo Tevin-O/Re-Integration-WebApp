@@ -50,7 +50,7 @@
       </v-card-text>
       <v-card-actions class="ml-6 mr-6 text-center">
         <p>
-          By continuing, you agree to Fedorae Education's
+          By continuing, you agree to Finder Family
           <a href="#" class="pl-2" style="color: #000000">Policy</a>
           and
           <a href="#" class="pl-2" style="color: #000000">Terms of Use</a>
@@ -85,7 +85,7 @@
             console.log("Successfully registered");
             sendEmailVerification(userCredential.user).then(() => {
               alert("Verification email sent. Please check your inbox.");
-              router.push('/about');
+              router.push('/');
             });
           })
           .catch((error) => {
