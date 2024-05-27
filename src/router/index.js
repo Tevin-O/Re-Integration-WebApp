@@ -3,11 +3,16 @@ import HomeView from '../views/HomeView.vue';
 import LoginUi from '../views/LoginUi.vue';
 import Feed from '../views/Feed.vue';
 import Signin from '../views/Signin.vue';
-import VerifyEmail from '../views/VerifyEmail.vue'; // Ensure you have this view
+import VerifyEmail from '../views/VerifyEmail.vue'; 
 import Register2 from '../components/Register2.vue';
 import ForgotPassword from '../components/ForgotPassword.vue';
 import Login from '../components/Login.vue';
+import AdminDashboard from '../views/AdminDashboard.vue';
+import AdminManagement from '../components/AdminManagement.vue';
+import UserDashboard from '../views/UserDashboard.vue';
+
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
 
 const routes = [
   {
@@ -58,7 +63,24 @@ const routes = [
     path: '/verify-email',
     name: 'verify-email',
     component: VerifyEmail
-  }
+  },
+  {
+    path: '/admin',
+    component: AdminDashboard,
+    meta: { requiresAdmin: true, requiresAuth: true },
+    children: [
+      {
+        path: 'manage',
+        component: AdminManagement,
+        meta: { requiresAdmin: true, requiresAuth: true }
+      }
+    ]
+  },
+  {
+    path: '/user',
+    component: UserDashboard,
+    meta: { requiresAuth: true }
+  },
 ];
 
 const router = createRouter({
@@ -79,13 +101,24 @@ const getCurrentUser = () => {
   });
 };
 
-router.beforeEach(async (to, from, next) => {
-  if (to.matched.some((record) => record.meta.requiresAuth)) {
+router.beforeEach(async (to,from, next) => {
+  if (to.matched.some(record => record.meta.requiresAuth)) {
     const user = await getCurrentUser();
     if (user) {
-      if (to.matched.some((record) => record.meta.requiresEmailVerified)) {
+      if (to.matched.some(record => record.meta.requiresEmailVerified)) {
         if (user.emailVerified) {
-          next();
+          if (to.matched.some(record => record.meta.requiresAdmin)) {
+            const db = getFirestore();
+            const userDoc = await getDoc(doc(db, 'users', user.uid));
+            if (userDoc.exists() && userDoc.data().isAdmin) {
+              next();
+            } else {
+              alert('You do not have admin access to this page.');
+              next('/user');
+            }
+          } else {
+            next();
+          }
         } else {
           alert('Please verify your email to access this page.');
           next('/verify-email');
@@ -103,4 +136,3 @@ router.beforeEach(async (to, from, next) => {
 });
 
 export default router;
-
