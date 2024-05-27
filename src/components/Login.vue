@@ -94,6 +94,8 @@
   import { ref, onMounted } from 'vue';
   import { useRouter } from 'vue-router';
   import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from 'firebase/auth';
+  import { getFirestore, doc, getDoc } from "firebase/firestore";
+
   
   const email = ref("");
   const password = ref("");
@@ -107,7 +109,7 @@
     signInWithPopup(auth, provider)
       .then((result) => {
         console.log(result.user);
-        router.push("/feed");
+        router.push("/user");
       })
       .catch((error) => {
         console.error('Google sign-in error', error);
@@ -115,23 +117,33 @@
       });
   };
   
-  const login = () => {
-    signInWithEmailAndPassword(auth, email.value, password.value)
-      .then((userCredential) => {
-        console.log("Successfully signed In", userCredential);
-        if (auth.currentUser.emailVerified) {
-          router.push('/feed'); // Redirect user after login to the feed page
+  const login = async () => {
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email.value, password.value);
+    const user = userCredential.user;
+    if (auth.currentUser.emailVerified) {
+      const userDocRef = doc(getFirestore(), 'users', user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+      if (userDocSnap.exists()) {
+        const userData = userDocSnap.data();
+        if (userData.isAdmin) {
+          router.push('/admin');
         } else {
-          alert("Please verify your email before accessing this page");
-          router.push('/verify-email');
+          router.push('/user');
         }
-      })
-      .catch((error) => {
-        console.log(error.code);
-        alert(error.message);
-      });
-  };
-  
+      } else {
+        alert("User document not found.");
+      }
+    } else {
+      alert("Please verify your email before accessing this page");
+      router.push('/verify-email');
+    }
+  } catch (error) {
+    console.error(error);
+    alert(error.message);
+  }
+};
+
   onMounted(() => {
     onAuthStateChanged(auth, (user) => {
       isLoggedIn.value = !!user;
