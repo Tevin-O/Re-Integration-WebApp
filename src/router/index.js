@@ -7,9 +7,16 @@ import VerifyEmail from '../views/VerifyEmail.vue';
 import Register2 from '../components/Register2.vue';
 import ForgotPassword from '../components/ForgotPassword.vue';
 import Login from '../components/Login.vue';
-import AdminDashboard from '../views/AdminDashboard.vue';
-import AdminManagement from '../components/AdminManagement.vue';
-import UserDashboard from '../views/UserDashboard.vue';
+import AdminDash from '../components/AdminDash.vue';
+//import AdminManagement from '../components/AdminManagement.vue';
+import UserDash from '../components/UserDash.vue';
+import ManageUsers from '../components/ManageUsers.vue';
+import ManageChildren from '../components/ManageChildren.vue';
+import ManageConnections from '../components/ManageConnections.vue';
+import UserProfile from '../components/UserProfile.vue';
+import UserConnections from '../components/UserConnections.vue';
+import CommonHomepage from '../components/CommonHomepage.vue';
+import Donations from '../components/Donations.vue';
 
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
@@ -65,21 +72,50 @@ const routes = [
     component: VerifyEmail
   },
   {
+    path:'/commonhomepage',
+    name: 'CommonHomepage',
+    component: CommonHomepage
+  },
+  {
     path: '/admin',
-    component: AdminDashboard,
+    component: AdminDash,
     meta: { requiresAdmin: true, requiresAuth: true },
     children: [
       {
-        path: 'manage',
-        component: AdminManagement,
+        path: 'users',
+        component: ManageUsers,
+        meta: { requiresAdmin: true, requiresAuth: true }
+      },
+      {
+        path:'children',
+        component: ManageChildren,
+        meta: { requiresAdmin: true, requiresAuth: true }
+      },
+      {
+        path:'connections',
+        component: ManageConnections,
         meta: { requiresAdmin: true, requiresAuth: true }
       }
     ]
   },
   {
     path: '/user',
-    component: UserDashboard,
-    meta: { requiresAuth: true }
+    component: UserDash,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path:'profile',
+        component: UserProfile
+      },
+      {
+        path:'connections',
+        component: UserConnections
+      },
+      {
+        path:'donations',
+        component: Donations
+      }
+    ]
   },
 ];
 
