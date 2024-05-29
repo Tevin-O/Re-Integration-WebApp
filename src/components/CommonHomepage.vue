@@ -1,14 +1,13 @@
 <template>
     <div>
-      <h1>Admin Dashboard</h1>
-      <router-link to="/admin/manage">Manage Users</router-link>
-      <router-view></router-view>
+      <h2>Home Page</h2>
+      <p>Welcome to the dashboard!</p>
     </div>
   </template>
   
   <script>
   export default {
-    name: 'AdminDashboard'
+    name: 'CommonHomePage'
   };
   </script>
   
