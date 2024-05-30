@@ -45,6 +45,8 @@ const firebaseConfig = {
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
 
+export{auth};
+
 loadFonts()
 
 
@@ -52,4 +54,6 @@ createApp(App)
   .use(router)
   .use(store)
   .use(vuetify)
-  .mount('#app')
+  .mount('#app');
+
+
