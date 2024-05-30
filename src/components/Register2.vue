@@ -9,7 +9,7 @@
           v-model="name"
           label="Enter your Name"
           name="name"
-          prepend-inner-icon="mdi-account"
+          prepend-inner-icon="fas fa-user"
           type="text"
           class="rounded-0"
           outlined
@@ -18,7 +18,7 @@
           v-model="email"
           label="Enter your Email"
           name="email"
-          prepend-inner-icon="mdi-email"
+          prepend-inner-icon="fas fa-envelope"
           type="email"
           class="rounded-0"
           outlined
@@ -27,7 +27,7 @@
           v-model="password"
           label="Enter your password"
           name="password"
-          prepend-inner-icon="mdi-lock"
+          prepend-inner-icon="fas fa-lock"
           type="password"
           class="rounded-0"
           outlined
@@ -36,7 +36,7 @@
           v-model="confirmPassword"
           label="Re-enter password"
           name="confirmPassword"
-          prepend-inner-icon="mdi-lock-outline"
+          prepend-inner-icon="fas fa-lock"
           type="password"
           class="rounded-0"
           outlined
@@ -112,3 +112,7 @@ export default {
   }
 };
 </script>
+
+<style scoped>
+/* Your styles here */
+</style>
