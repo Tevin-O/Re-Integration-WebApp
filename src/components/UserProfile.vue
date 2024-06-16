@@ -71,13 +71,6 @@
                 <v-radio label="Female" value="female"></v-radio>
               </v-radio-group>
               <v-divider class="my-4"></v-divider>
-              <v-file-input
-                v-model="profilePhoto"
-                label="Upload Profile Photo"
-                prepend-inner-icon="fas fa-camera"
-                accept="image/*"
-                @change="handlePhotoUpload"
-              ></v-file-input>
               <v-btn type="submit" color="primary" class="mt-4" block title="Update Profile">Update Profile</v-btn>
             </form>
           </v-card-text>
@@ -131,12 +124,12 @@
   </v-container>
 </template>
 
+
+
 <script>
 import { ref, onMounted } from 'vue';
 import { getAuth, updateProfile as updateFirebaseProfile, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { doc, updateDoc, getDoc, getFirestore } from 'firebase/firestore';
-import compressImage from '@/utils/compressImage.js'; // Ensure the path is correct
 
 export default {
   name: 'UserProfile',
@@ -144,7 +137,6 @@ export default {
     const phoneNumber = ref('');
     const address = ref('');
     const gender = ref('');
-    const profilePhoto = ref(null);
     const oldPassword = ref('');
     const newPassword = ref('');
     const paymentMethod = ref('');
@@ -188,14 +180,6 @@ export default {
       }
     };
 
-    const handlePhotoUpload = (event) => {
-      const file = event.target.files[0];
-      if (file) {
-        profilePhoto.value = file;
-        console.log('Photo selected:', file); // Debugging
-      }
-    };
-
     const updateProfile = async () => {
       try {
         const user = auth.currentUser;
@@ -208,27 +192,14 @@ export default {
             paymentMethods: userInfo.value.paymentMethods || {} // Ensure paymentMethods is not overwritten
           };
 
-          if (profilePhoto.value) {
-            console.log('Uploading photo...'); // Debugging
-            const compressedPhoto = await compressImage(profilePhoto.value);
-            console.log('Photo compressed:', compressedPhoto); // Debugging
-            const storage = getStorage();
-            const photoRef = storageRef(storage, `profilePhotos/${user.uid}.jpg`);
-            await uploadBytes(photoRef, compressedPhoto);
-            const photoURL = await getDownloadURL(photoRef);
-            profileData.photoURL = photoURL;
-            console.log('Photo uploaded, URL:', photoURL); // Debugging
-          }
-
           // Update user document in Firestore
           await updateDoc(userDoc, profileData);
           console.log('Firestore profile updated:', profileData); // Debugging
 
-          if (profilePhoto.value) {
-            // Update user profile photo URL in Firebase Auth
-            await updateFirebaseProfile(user, { photoURL: profileData.photoURL });
-            console.log('Firebase Auth profile updated:', profileData.photoURL); // Debugging
-          }
+          // Update local state to reflect the changes
+          userInfo.value.phoneNumber = phoneNumber.value;
+          userInfo.value.address = address.value;
+          userInfo.value.gender = gender.value;
 
           alert('Profile updated successfully');
           fetchUserInfo(); // Refresh user info after updating
@@ -299,7 +270,6 @@ export default {
       phoneNumber,
       address,
       gender,
-      profilePhoto,
       oldPassword,
       newPassword,
       paymentMethod,
@@ -311,19 +281,10 @@ export default {
       updateProfile,
       changePassword,
       addPaymentMethod,
-      handlePhotoUpload,
       fetchUserInfo,
     };
   },
 };
 </script>
 
-<style scoped>
-.mx-auto {
-  margin-left: auto;
-  margin-right: auto;
-}
-.text-center {
-  text-align: center;
-}
-</style>
+
