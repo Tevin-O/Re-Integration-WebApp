@@ -62,7 +62,7 @@
 
 <script>
 import { ref } from 'vue';
-import { getAuth, createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
+import { getAuth, createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from "firebase/auth";
 import { useRouter } from 'vue-router';
 import { getFirestore, doc, setDoc } from "firebase/firestore";
 
@@ -77,29 +77,36 @@ export default {
     const auth = getAuth();
     const db = getFirestore();
 
-    const register = () => {
+    const register = async () => {
       if (password.value !== confirmPassword.value) {
         alert("Passwords do not match!");
         return;
       }
 
-      createUserWithEmailAndPassword(auth, email.value, password.value)
-        .then(async (userCredential) => {
-          console.log("Successfully registered");
-          await setDoc(doc(db, "users", userCredential.user.uid), {
-            email: email.value,
-            isAdmin: false,
-            name: name.value,
-          });
-          sendEmailVerification(userCredential.user).then(() => {
-            alert("Verification email sent. Please check your inbox.");
-            router.push('/');
-          });
-        })
-        .catch((error) => {
-          console.log(error.code);
-          alert(error.message);
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email.value, password.value);
+        console.log("Successfully registered");
+
+        // Update the user's profile with the displayName
+        await updateProfile(userCredential.user, {
+          displayName: name.value
         });
+
+        // Store additional user information in Firestore
+        await setDoc(doc(db, "users", userCredential.user.uid), {
+          email: email.value,
+          isAdmin: false,
+          name: name.value,
+          paymentMethods: {} // Initialize paymentMethods as an empty map
+        });
+
+        await sendEmailVerification(userCredential.user);
+        alert("Verification email sent. Please check your inbox.");
+        router.push('/');
+      } catch (error) {
+        console.log(error.code);
+        alert(error.message);
+      }
     };
 
     return {
