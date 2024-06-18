@@ -14,6 +14,7 @@
             <p><strong>Phone Number:</strong> {{ userInfo.phoneNumber || 'Not provided' }}</p>
             <p><strong>Address:</strong> {{ userInfo.address || 'Not provided' }}</p>
             <p><strong>Gender:</strong> {{ userInfo.gender || 'Not specified' }}</p>
+            <p><strong>Payment Method:</strong> {{ paymentMethodSummary }}</p>
           </v-card-text>
         </v-card>
       </v-col>
@@ -77,16 +78,31 @@
         </v-card>
       </v-col>
 
-      <!-- Add Payment Method -->
+      <!-- Change Profile Picture Button and Payment Method Form -->
       <v-col cols="12" md="6">
         <v-card class="mx-auto my-5" elevation="2">
-          <v-card-title>Add Payment Method</v-card-title>
+          <v-card-title>Change Profile Picture</v-card-title>
           <v-card-text>
-            <v-radio-group v-model="paymentMethod" row>
+            <v-btn @click="selectProfilePicture" color="primary">Change Profile Picture</v-btn>
+            <input type="file" ref="fileInput" @change="uploadProfilePicture" style="display: none;" />
+          </v-card-text>
+        </v-card>
+
+        <!-- Add or Update Payment Method -->
+        <v-card class="mx-auto my-5" elevation="2">
+          <v-card-title v-if="!hasPaymentMethod">Add Payment Method</v-card-title>
+          <v-card-title v-else>Update Payment Method</v-card-title>
+          <v-card-text>
+            <v-radio-group v-if="!hasPaymentMethod" v-model="paymentMethod" row>
               <v-radio label="Card" value="card"></v-radio>
               <v-radio label="PayPal" value="paypal"></v-radio>
             </v-radio-group>
-            <form v-if="paymentMethod === 'card'" @submit.prevent="addPaymentMethod">
+            <v-radio-group v-else v-model="newPaymentMethod" row>
+              <v-radio label="Card" value="card"></v-radio>
+              <v-radio label="PayPal" value="paypal"></v-radio>
+            </v-radio-group>
+
+            <form v-if="!hasPaymentMethod && paymentMethod === 'card'" @submit.prevent="addPaymentMethod">
               <v-text-field
                 v-model="cardNumber"
                 label="Card Number"
@@ -108,7 +124,7 @@
               ></v-text-field>
               <v-btn type="submit" color="primary" class="mt-4" block title="Add Card">Add Card</v-btn>
             </form>
-            <form v-else-if="paymentMethod === 'paypal'" @submit.prevent="addPaymentMethod">
+            <form v-if="!hasPaymentMethod && paymentMethod === 'paypal'" @submit.prevent="addPaymentMethod">
               <v-text-field
                 v-model="paypalEmail"
                 label="PayPal Email"
@@ -117,6 +133,38 @@
               ></v-text-field>
               <v-btn type="submit" color="primary" class="mt-4" block title="Add PayPal">Add PayPal</v-btn>
             </form>
+
+            <form v-if="hasPaymentMethod && newPaymentMethod === 'card'" @submit.prevent="updatePaymentMethod">
+              <v-text-field
+                v-model="newCardNumber"
+                label="Card Number"
+                prepend-inner-icon="fas fa-credit-card"
+                required
+              ></v-text-field>
+              <v-text-field
+                v-model="newExpiryDate"
+                label="Expiry Date (MM/YY)"
+                prepend-inner-icon="fas fa-calendar-alt"
+                required
+              ></v-text-field>
+              <v-text-field
+                v-model="newCvv"
+                label="CVV"
+                type="password"
+                prepend-inner-icon="fas fa-lock"
+                required
+              ></v-text-field>
+              <v-btn type="submit" color="primary" class="mt-4" block title="Update Card">Update Card</v-btn>
+            </form>
+            <form v-if="hasPaymentMethod && newPaymentMethod === 'paypal'" @submit.prevent="updatePaymentMethod">
+              <v-text-field
+                v-model="newPaypalEmail"
+                label="PayPal Email"
+                prepend-inner-icon="fas fa-envelope"
+                required
+              ></v-text-field>
+              <v-btn type="submit" color="primary" class="mt-4" block title="Update PayPal">Update PayPal</v-btn>
+            </form>
           </v-card-text>
         </v-card>
       </v-col>
@@ -124,12 +172,11 @@
   </v-container>
 </template>
 
-
-
 <script>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { getAuth, updateProfile as updateFirebaseProfile, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { doc, updateDoc, getDoc, getFirestore } from 'firebase/firestore';
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 
 export default {
   name: 'UserProfile',
@@ -140,10 +187,15 @@ export default {
     const oldPassword = ref('');
     const newPassword = ref('');
     const paymentMethod = ref('');
+    const newPaymentMethod = ref('');
     const cardNumber = ref('');
+    const newCardNumber = ref('');
     const expiryDate = ref('');
+    const newExpiryDate = ref('');
     const cvv = ref('');
+    const newCvv = ref('');
     const paypalEmail = ref('');
+    const newPaypalEmail = ref('');
     const userInfo = ref({
       name: '',
       phoneNumber: '',
@@ -153,13 +205,14 @@ export default {
       paymentMethods: {}
     });
 
-    const auth = getAuth(); // Initialize the auth instance
+    const auth = getAuth();
+    const storage = getStorage();
+    const fileInput = ref(null);
 
     const fetchUserInfo = async () => {
       try {
         const user = auth.currentUser;
         if (user) {
-          // Fetch user info from Firestore
           const userDoc = await getDoc(doc(getFirestore(), 'users', user.uid));
           if (userDoc.exists()) {
             const data = userDoc.data();
@@ -189,20 +242,18 @@ export default {
             phoneNumber: phoneNumber.value,
             address: address.value,
             gender: gender.value,
-            paymentMethods: userInfo.value.paymentMethods || {} // Ensure paymentMethods is not overwritten
+            paymentMethods: userInfo.value.paymentMethods || {}
           };
 
-          // Update user document in Firestore
           await updateDoc(userDoc, profileData);
-          console.log('Firestore profile updated:', profileData); // Debugging
+          console.log('Firestore profile updated:', profileData);
 
-          // Update local state to reflect the changes
           userInfo.value.phoneNumber = phoneNumber.value;
           userInfo.value.address = address.value;
           userInfo.value.gender = gender.value;
 
           alert('Profile updated successfully');
-          fetchUserInfo(); // Refresh user info after updating
+          fetchUserInfo();
         }
       } catch (error) {
         console.error('Error updating profile', error);
@@ -254,13 +305,91 @@ export default {
 
           await updateDoc(userDoc, { paymentMethods });
           alert(`Added ${paymentMethod.value} payment method`);
-          fetchUserInfo(); // Refresh user info after adding payment method
+          fetchUserInfo();
         }
       } catch (error) {
         console.error('Error adding payment method', error);
         alert('Failed to add payment method. Please try again.');
       }
     };
+
+    const updatePaymentMethod = async () => {
+      try {
+        const user = auth.currentUser;
+        if (user) {
+          const userDoc = doc(getFirestore(), 'users', user.uid);
+          const paymentMethods = {};
+
+          if (newPaymentMethod.value === 'card') {
+            paymentMethods.card = {
+              cardNumber: newCardNumber.value,
+              expiryDate: newExpiryDate.value,
+              cvv: newCvv.value,
+            };
+          } else if (newPaymentMethod.value === 'paypal') {
+            paymentMethods.paypal = {
+              paypalEmail: newPaypalEmail.value,
+            };
+          }
+
+          await updateDoc(userDoc, { paymentMethods });
+          alert(`Updated to ${newPaymentMethod.value} payment method`);
+          fetchUserInfo();
+        }
+      } catch (error) {
+        console.error('Error updating payment method', error);
+        alert('Failed to update payment method. Please try again.');
+      }
+    };
+
+    const selectProfilePicture = () => {
+      fileInput.value.click();
+    };
+
+    const uploadProfilePicture = async (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        try {
+          const user = auth.currentUser;
+          if (user) {
+            const storageReference = storageRef(storage, `profile_pictures/${user.uid}`);
+            
+            if (userInfo.value.photoURL) {
+              const oldPhotoRef = storageRef(storage, userInfo.value.photoURL);
+              await deleteObject(oldPhotoRef);
+            }
+            
+            await uploadBytes(storageReference, file);
+            const downloadURL = await getDownloadURL(storageReference);
+            
+            const userDoc = doc(getFirestore(), 'users', user.uid);
+            await updateDoc(userDoc, { photoURL: downloadURL });
+
+            userInfo.value.photoURL = downloadURL;
+            alert('Profile picture updated successfully');
+          }
+        } catch (error) {
+          console.error('Error uploading profile picture', error);
+          alert('Failed to upload profile picture. Please try again.');
+        }
+      }
+    };
+
+    const hasPaymentMethod = computed(() => {
+      const methods = userInfo.value.paymentMethods;
+      return methods.card || methods.paypal;
+    });
+
+    const paymentMethodSummary = computed(() => {
+      const methods = userInfo.value.paymentMethods;
+      if (methods.card) {
+        return 'Card';
+      } else if (methods.paypal) {
+        return 'PayPal';
+      } else {
+        return 'Not specified';
+      }
+    });
 
     onMounted(() => {
       fetchUserInfo();
@@ -273,18 +402,33 @@ export default {
       oldPassword,
       newPassword,
       paymentMethod,
+      newPaymentMethod,
       cardNumber,
+      newCardNumber,
       expiryDate,
+      newExpiryDate,
       cvv,
+      newCvv,
       paypalEmail,
+      newPaypalEmail,
       userInfo,
       updateProfile,
       changePassword,
       addPaymentMethod,
+      updatePaymentMethod,
       fetchUserInfo,
+      selectProfilePicture,
+      uploadProfilePicture,
+      fileInput,
+      hasPaymentMethod,
+      paymentMethodSummary
     };
   },
 };
 </script>
 
-
+<style>
+.v-avatar img {
+  border-radius: 50%;
+}
+</style>
