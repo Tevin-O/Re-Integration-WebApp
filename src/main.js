@@ -6,6 +6,7 @@ import vuetify from './plugins/vuetify'
 import { loadFonts } from './plugins/webfontloader'
 import 'material-design-icons-iconfont/dist/material-design-icons.css'
 import '@mdi/font/css/materialdesignicons.css'
+import HighchartsVue from 'highcharts-vue';
 
 import * as components from './components'
 
@@ -54,6 +55,7 @@ createApp(App)
   .use(router)
   .use(store)
   .use(vuetify)
+  .use(HighchartsVue)
   .mount('#app');
 
 
