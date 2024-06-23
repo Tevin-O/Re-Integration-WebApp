@@ -39,6 +39,13 @@
                 prepend-inner-icon="fas fa-lock"
                 required
               ></v-text-field>
+              <v-text-field
+                v-model="confirmPassword"
+                label="Confirm New Password"
+                type="password"
+                prepend-inner-icon="fas fa-lock"
+                required
+              ></v-text-field>
               <v-btn type="submit" color="primary" class="mt-4" block title="Change Password">Change Password</v-btn>
             </form>
           </v-card-text>
@@ -174,7 +181,7 @@
 
 <script>
 import { ref, onMounted, computed } from 'vue';
-import { getAuth, updateProfile as updateFirebaseProfile, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
+import { getAuth, updateProfile as updateFirebaseProfile, EmailAuthProvider, reauthenticateWithCredential, updatePassword, sendEmailVerification } from 'firebase/auth';
 import { doc, updateDoc, getDoc, getFirestore } from 'firebase/firestore';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 
@@ -186,6 +193,7 @@ export default {
     const gender = ref('');
     const oldPassword = ref('');
     const newPassword = ref('');
+    const confirmPassword = ref('');
     const paymentMethod = ref('');
     const newPaymentMethod = ref('');
     const cardNumber = ref('');
@@ -225,7 +233,6 @@ export default {
             phoneNumber.value = data.phoneNumber || '';
             address.value = data.address || '';
             gender.value = data.gender || '';
-            console.log('User info fetched:', userInfo.value); // Debugging
           }
         }
       } catch (error) {
@@ -246,7 +253,6 @@ export default {
           };
 
           await updateDoc(userDoc, profileData);
-          console.log('Firestore profile updated:', profileData);
 
           userInfo.value.phoneNumber = phoneNumber.value;
           userInfo.value.address = address.value;
@@ -263,12 +269,25 @@ export default {
 
     const changePassword = async () => {
       try {
+        if (newPassword.value !== confirmPassword.value) {
+          alert('New password and confirmation do not match');
+          return;
+        }
+
         const user = auth.currentUser;
         if (user) {
           const credential = EmailAuthProvider.credential(user.email, oldPassword.value);
           await reauthenticateWithCredential(user, credential);
           await updatePassword(user, newPassword.value);
-          alert('Password changed successfully');
+          
+          await sendEmailVerification(user, {
+            url: 'http://localhost:8080/loginui',
+            handleCodeInApp: true
+          });
+
+          alert('Password changed successfully. You will be logged out.');
+          auth.signOut();
+          window.location.href = '/loginui';
         }
       } catch (error) {
         console.error('Error changing password', error);
@@ -401,6 +420,7 @@ export default {
       gender,
       oldPassword,
       newPassword,
+      confirmPassword,
       paymentMethod,
       newPaymentMethod,
       cardNumber,
