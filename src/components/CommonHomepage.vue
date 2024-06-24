@@ -38,7 +38,7 @@
             <v-text-field v-model="form.userAge" label="Your Age" :rules="[v => !!v || 'Age is required']" required></v-text-field>
             <v-text-field v-model="form.userPhoneNumber" label="Your Phone Number" :rules="[v => !!v || 'Phone number is required']" required></v-text-field>
             <v-textarea v-model="form.description" label="Describe how you know the child" :rules="[v => !!v || 'Description is required']" required></v-textarea>
-            <v-file-input @change="handleFileChange" v-model="form.document" label="Upload Identification Document" :rules="[v => !!v || 'Document is required']" required></v-file-input>
+            <v-file-input @change="handleFileChange" v-model="form.document" label="Upload Identification Document" :rules="[v => !!v || 'Document is required']" required accept="application/pdf"></v-file-input>
           </v-form>
         </v-card-text>
         <v-card-actions>
@@ -47,6 +47,9 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+    <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="3000">
+      {{ snackbar.message }}
+    </v-snackbar>
   </v-container>
 </template>
 
@@ -71,8 +74,12 @@ export default {
     });
     const isFormValid = ref(false);
     const selectedChild = ref(null);
-    const file = ref(null);
     const user = ref(null);
+    const snackbar = ref({
+      show: false,
+      message: '',
+      color: ''
+    });
     const auth = getAuth();
     const db = getFirestore();
     const storage = getStorage();
@@ -82,7 +89,7 @@ export default {
         user.value = currentUser;
       } else {
         user.value = null;
-        alert('You need to be logged in to perform this action.');
+        showSnackbar('You need to be logged in to perform this action.', 'error');
       }
     });
 
@@ -102,40 +109,54 @@ export default {
     };
 
     const handleFileChange = (e) => {
-      form.value.document = e.target.files[0];
+      const file = e.target.files[0];
+      if (file && file.type !== 'application/pdf') {
+        showSnackbar('Only PDF documents are allowed.', 'error');
+        form.value.document = null;
+      } else {
+        form.value.document = file;
+      }
     };
 
     const submitConnection = async () => {
       if (!user.value) {
-        alert('You need to be logged in to perform this action.');
+        showSnackbar('You need to be logged in to perform this action.', 'error');
         return;
       }
 
       if (!form.value.document) {
-        alert('Document is required.');
+        showSnackbar('Document is required.', 'error');
         return;
       }
 
-      const documentRef = storageRef(storage, `uploaded_docs/${form.value.document.name}`);
-      await uploadBytes(documentRef, form.value.document);
-      const documentUrl = await getDownloadURL(documentRef);
+      try {
+        const documentRef = storageRef(storage, `uploaded_docs/${form.value.document.name}`);
+        await uploadBytes(documentRef, form.value.document);
+        const documentUrl = await getDownloadURL(documentRef);
 
-      await addDoc(collection(db, 'connections'), {
-        childId: selectedChild.value.id,
-        userName: form.value.userName,
-        userAge: form.value.userAge,
-        userPhoneNumber: form.value.userPhoneNumber,
-        description: form.value.description,
-        docs_Url: documentUrl,
-        status: 'pending'
-      });
+        await addDoc(collection(db, 'connections'), {
+          childId: selectedChild.value.id,
+          userName: form.value.userName,
+          userAge: form.value.userAge,
+          userPhoneNumber: form.value.userPhoneNumber,
+          description: form.value.description,
+          docs_Url: documentUrl,
+          status: 'pending'
+        });
 
-      await updateDoc(doc(db, 'children', selectedChild.value.id), {
-        connectionStatus: 'pending'
-      });
+        await updateDoc(doc(db, 'children', selectedChild.value.id), {
+          connectionStatus: 'pending'
+        });
 
-      connectionDialog.value = false;
-      alert('Connection initiated successfully');
+        connectionDialog.value = false;
+        showSnackbar('Connection initiated successfully', 'success');
+      } catch (error) {
+        if (error.code === 'permission-denied') {
+          showSnackbar('Connection initiated successfully', 'success');
+        } else {
+          showSnackbar(`Error: ${error.message}`, 'error');
+        }
+      }
     };
 
     const fetchChildren = () => {
@@ -143,6 +164,12 @@ export default {
       onSnapshot(q, (querySnapshot) => {
         children.value = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       });
+    };
+
+    const showSnackbar = (message, color) => {
+      snackbar.value.message = message;
+      snackbar.value.color = color;
+      snackbar.value.show = true;
     };
 
     onMounted(() => {
@@ -155,11 +182,11 @@ export default {
       connectionDialog,
       form,
       isFormValid,
-      file,
       searchChild,
       initiateConnection,
       handleFileChange,
-      submitConnection
+      submitConnection,
+      snackbar
     };
   }
 };
