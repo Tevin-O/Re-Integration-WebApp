@@ -109,7 +109,7 @@ export default {
 
     const loadPaypalSdk = (callback) => {
       const script = document.createElement('script');
-      script.src = `https://www.paypal.com/sdk/js?client-id=YOUR_PAYPAL_CLIENT_ID`;
+      script.src = `https://www.paypal.com/sdk/js?client-id=AQm-T_k_iDWUG8UcV-NIO1sBpwAsPJMeoMRylJXtXqYowbhIb-QW85s5P0LZ-o7jeCSJ7xoMhJRuAfKN`;
       script.onload = callback;
       document.head.appendChild(script);
     };
