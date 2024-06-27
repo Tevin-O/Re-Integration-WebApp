@@ -136,12 +136,14 @@ export default {
 
         await addDoc(collection(db, 'connections'), {
           childId: selectedChild.value.id,
+          userId: user.value.uid,  // Add userId field here
           userName: form.value.userName,
           userAge: form.value.userAge,
           userPhoneNumber: form.value.userPhoneNumber,
           description: form.value.description,
           docs_Url: documentUrl,
-          status: 'pending'
+          status: 'pending',
+          photoUrl: selectedChild.value.photoUrl, // Add photoUrl here
         });
 
         await updateDoc(doc(db, 'children', selectedChild.value.id), {
@@ -150,6 +152,7 @@ export default {
 
         connectionDialog.value = false;
         showSnackbar('Connection initiated successfully', 'success');
+        fetchConnections(); // Refresh connections after submission
       } catch (error) {
         if (error.code === 'permission-denied') {
           showSnackbar('Connection initiated successfully', 'success');
@@ -166,6 +169,30 @@ export default {
       });
     };
 
+    const fetchConnections = async () => {
+      try {
+        const q = query(collection(db, 'connections'), where('userId', '==', user.value.uid));
+        const querySnapshot = await getDocs(q);
+
+        connections.value = await Promise.all(querySnapshot.docs.map(async (connectionDoc) => {
+          const connectionData = connectionDoc.data();
+          const childDocRef = doc(db, `children/${connectionData.childId}`);
+          const childDoc = await getDoc(childDocRef);
+          return {
+            id: connectionDoc.id,
+            ...connectionData,
+            child: childDoc.exists() ? childDoc.data() : {}
+          };
+        }));
+      } catch (error) {
+        if (error.code === 'permission-denied') {
+          showSnackbar('Permission denied. Please check your Firestore rules.', 'error');
+        } else {
+          showSnackbar(`Error: ${error.message}`, 'error');
+        }
+      }
+    };
+
     const showSnackbar = (message, color) => {
       snackbar.value.message = message;
       snackbar.value.color = color;
@@ -174,6 +201,9 @@ export default {
 
     onMounted(() => {
       fetchChildren();
+      if (user.value) {
+        fetchConnections();
+      }
     });
 
     return {
