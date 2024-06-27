@@ -19,12 +19,20 @@
             <p><strong>Age:</strong> {{ connection.child.age }}</p>
           </v-card-text>
           <v-card-actions>
-            <v-btn color="success" @click="confirmConnection(connection.id)">Confirm</v-btn>
-            <v-btn color="error" @click="rejectConnection(connection.id)">Reject</v-btn>
+            <v-btn color="success" @click="confirmConnection(connection)">Confirm</v-btn>
+            <v-btn color="error" @click="rejectConnection(connection)">Reject</v-btn>
           </v-card-actions>
         </v-card>
       </v-col>
     </v-row>
+
+    <h2>Admin Actions</h2>
+    <v-data-table
+      :headers="actionHeaders"
+      :items="actions"
+      class="elevation-1"
+    ></v-data-table>
+
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="3000">
       {{ snackbar.message }}
     </v-snackbar>
@@ -33,18 +41,26 @@
 
 <script>
 import { ref, onMounted } from 'vue';
-import { getFirestore, collection, query, getDocs, updateDoc, doc, getDoc } from 'firebase/firestore';
+import { getFirestore, collection, query, getDocs, updateDoc, doc, getDoc, serverTimestamp } from 'firebase/firestore';
 
 export default {
   name: 'ManageConnections',
   setup() {
     const connections = ref([]);
+    const actions = ref([]);
     const snackbar = ref({
       show: false,
       message: '',
       color: ''
     });
     const db = getFirestore();
+
+    const actionHeaders = [
+      { text: 'User Name', value: 'userName' },
+      { text: 'Phone Number', value: 'userPhoneNumber' },
+      { text: 'Action', value: 'adminAction' },
+      { text: 'Timestamp', value: 'adminActionTimestamp' },
+    ];
 
     const fetchConnections = async () => {
       try {
@@ -53,13 +69,26 @@ export default {
 
         connections.value = await Promise.all(querySnapshot.docs.map(async (connectionDoc) => {
           const connectionData = connectionDoc.data();
-          const childDocRef = doc(db, `children/${connectionData.childId}`);
+          const childId = connectionData.childId;
+          if (!childId) {
+            throw new Error(`Missing childId for connection ${connectionDoc.id}`);
+          }
+          console.log(`Fetching child document for childId: ${childId}`);
+          const childDocRef = doc(db, `children/${childId}`);
           const childDoc = await getDoc(childDocRef);
           return {
             id: connectionDoc.id,
             ...connectionData,
             child: childDoc.exists() ? childDoc.data() : {}
           };
+        }));
+
+        // Populate actions based on connections
+        actions.value = connections.value.map(conn => ({
+          userName: conn.userName,
+          userPhoneNumber: conn.userPhoneNumber,
+          adminAction: conn.adminAction || 'Pending',
+          adminActionTimestamp: conn.adminActionTimestamp ? conn.adminActionTimestamp.toDate().toLocaleString() : 'N/A'
         }));
       } catch (error) {
         if (error.code === 'permission-denied') {
@@ -70,10 +99,15 @@ export default {
       }
     };
 
-    const confirmConnection = async (id) => {
+    const confirmConnection = async (connection) => {
       try {
-        await updateDoc(doc(db, 'connections', id), {
-          status: 'confirmed'
+        await updateDoc(doc(db, 'connections', connection.id), {
+          status: 'confirmed',
+          adminAction: 'Confirmed',
+          adminActionTimestamp: serverTimestamp()
+        });
+        await updateDoc(doc(db, 'children', connection.childId), {
+          connectionStatus: 'confirmed'
         });
         showSnackbar('Connection confirmed successfully', 'success');
         fetchConnections();
@@ -82,10 +116,15 @@ export default {
       }
     };
 
-    const rejectConnection = async (id) => {
+    const rejectConnection = async (connection) => {
       try {
-        await updateDoc(doc(db, 'connections', id), {
-          status: 'rejected'
+        await updateDoc(doc(db, 'connections', connection.id), {
+          status: 'rejected',
+          adminAction: 'Rejected',
+          adminActionTimestamp: serverTimestamp()
+        });
+        await updateDoc(doc(db, 'children', connection.childId), {
+          connectionStatus: 'rejected'
         });
         showSnackbar('Connection rejected successfully', 'success');
         fetchConnections();
@@ -106,7 +145,9 @@ export default {
 
     return {
       connections,
+      actions,
       snackbar,
+      actionHeaders,
       confirmConnection,
       rejectConnection
     };
