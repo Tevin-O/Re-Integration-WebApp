@@ -12,7 +12,19 @@
             <v-btn :color="getConnectionStatusColor(connection.status)" class="ma-2">
               {{ connection.status }}
             </v-btn>
+            <p><strong>Parents Status:</strong> {{ connection.child.parents }}</p>
+            <p><strong>Address:</strong> {{ connection.child.address }}</p>
           </v-card-text>
+          <v-card-actions class="justify-center">
+            <v-tooltip bottom>
+              <template v-slot:activator="{ on, attrs }">
+                <v-btn icon v-bind="attrs" v-on="on" @click="copyEmail">
+                  <i class="fas fa-envelope"></i>
+                </v-btn>
+              </template>
+              <span>Write to us after 7 days without feedback</span>
+            </v-tooltip>
+          </v-card-actions>
         </v-card>
       </v-col>
     </v-row>
@@ -93,6 +105,15 @@ export default {
       snackbar.value.show = true;
     };
 
+    const copyEmail = () => {
+      const email = 'tevin.omondi@strathmore.edu';
+      navigator.clipboard.writeText(email).then(() => {
+        showSnackbar('Email copied to clipboard.', 'success');
+      }).catch(err => {
+        showSnackbar('Failed to copy email.', 'error');
+      });
+    };
+
     onMounted(() => {
       if (user.value) {
         fetchConnections();
@@ -102,7 +123,8 @@ export default {
     return {
       connections,
       snackbar,
-      getConnectionStatusColor
+      getConnectionStatusColor,
+      copyEmail
     };
   }
 };
