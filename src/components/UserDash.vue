@@ -38,22 +38,31 @@
 
 <script>
 import { ref, onMounted } from 'vue';
+import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
 import UserProfile from '../components/UserProfile.vue';
 import UserConnections from '../components/UserConnections.vue';
 import CommonHomePage from '../components/CommonHomepage.vue';
 import Donations from '../components/Donations.vue';
-import { signOut } from 'firebase/auth';
-import { auth } from '../main'; // Import auth from main.js
 
 export default {
   setup() {
     const userName = ref('');
+    const auth = getAuth();
 
     const getUserName = () => {
-      if (auth.currentUser) {
-        userName.value = auth.currentUser.displayName || '';
+      const user = auth.currentUser;
+      if (user) {
+        userName.value = user.displayName || 'User';
       }
     };
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        userName.value = user.displayName || 'User';
+      } else {
+        userName.value = '';
+      }
+    });
 
     onMounted(getUserName);
 
@@ -93,16 +102,16 @@ export default {
       this.previousComponent = this.currentComponent;
       this.$router.push('/loginui');
     },
-    logout() {
-      signOut(auth)
-        .then(() => {
-          console.log('User logged out successfully');
-          this.$router.push('/'); // Redirect user to the home page after logout
-        })
-        .catch((error) => {
-          console.error('Logout error', error);
-          alert('Failed to logout. Please try again.');
-        });
+    async logout() {
+      const auth = getAuth();
+      try {
+        await signOut(auth);
+        console.log('User logged out successfully');
+        this.$router.push('/'); // Redirect user to the home page after logout
+      } catch (error) {
+        console.error('Logout error', error);
+        alert('Failed to logout. Please try again.');
+      }
     }
   },
   watch: {
