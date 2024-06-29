@@ -9,7 +9,7 @@
       <v-btn text @click="scroll('home')" class="text-yellow">Home</v-btn>
       <v-btn text @click="scroll('about')"  >About</v-btn>
       <v-btn text @click="scroll('mission')"  >Mission</v-btn> 
-     <v-btn text @click="scroll('services')" >Services</v-btn>
+     <v-btn text @click="scroll('services')" >Gallery</v-btn>
       <v-btn text @click="scroll('testimonials')"  >Testimonials</v-btn>   
       <v-btn text @click="scroll('howtohelp')"  >How to help</v-btn>
       <v-btn text @click="scroll('contact')"  >Contact Us</v-btn>
