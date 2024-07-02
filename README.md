@@ -37,6 +37,24 @@ This collaborative approach ensures a smooth transition and provides a safety ne
    ```bash
    npm run build
 
+6. To run and view Finder Family Web-application locally in your browser click the link below:
+
+    (http://localhost:8080/)
+
+## How to Contribute
+
+We welcome contrubutors to Finder Family Community as we try to better the user-experience.
+
+To contribute:
+- Fork the repository on github
+- Create a new branch eg:(`git checkout -b newfeature`)
+- Implement your changes and ensure code quality eg:(`git add .`)
+- Commit your changes eg:(`git commit -m"Added hover functionality"`)
+- Push Branch to repository for confirmation eg:(`git push -u origin newfeature`)
+- Create a new pull request
+
+Please adhere to the projects coding style and conventions when submitting code. 
+ 
 ## Project Structure 
 The project's file structure: 
 
@@ -63,16 +81,38 @@ Vue-Firebase-v2/
 
 ## Additional Information
 
-**Project Status**
+**Commit Status**
+
+![GitHub commit activity](https://img.shields.io/github/commit-activity/m/Tevin-O/Vue-Firebase-v2)
+
+**project size**
+
+![GitHub repo size](https://img.shields.io/github/repo-size/Tevin-O/Vue-Firebase-v2)
 
 **Known Issues**
 
+![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/Tevin-O/Vue-Firebase-v2)
+
+The project has no known issues ,however i would like to encourage the wonderful community to raise issues as they are using the web-application.
+
 **Acknowledgements**
+
+I would like to thank the wonderful people who have seen and helped making this project come to light
+- Mr Kevin Omondi(Supervisor)
+- Mr Victor Boore(Contributor)
+
 
 **Licenses**
 
-## Contact Information
+- Node License
+ ![NPM License](https://img.shields.io/npm/l/node)
 
+- MIT License 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+
+## Contact Information
+Reach me through my email for any inquiries: (tevin.omondi@strathmore.edu)
 
 
 
