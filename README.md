@@ -15,6 +15,7 @@ This collaborative approach ensures a smooth transition and provides a safety ne
 ### Installation Steps
 
 1. Clone the repository
+- In directory of your liking
    ```bash
    
      git clone https://github.com/Tevin-O/Vue-Firebase-v2.git
