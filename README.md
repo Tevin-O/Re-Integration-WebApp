@@ -9,8 +9,8 @@ This collaborative approach ensures a smooth transition and provides a safety ne
 ## Project setup/Installation Instructions
 
 ### Dependencies
-- Vue.js
-- Firebase
+- Vue.js : (https://vuejs.org/guide/introduction.html)
+- Firebase : (https://firebase.google.com/docs)
 
 ### Installation Steps
 
