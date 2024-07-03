@@ -39,6 +39,7 @@
   </v-container>
 </template>
 
+
 <script>
 import { ref, onMounted } from 'vue';
 import { getFirestore, collection, query, getDocs, updateDoc, doc, getDoc, serverTimestamp } from 'firebase/firestore';
@@ -67,13 +68,12 @@ export default {
         const q = query(collection(db, 'connections'));
         const querySnapshot = await getDocs(q);
 
-        connections.value = await Promise.all(querySnapshot.docs.map(async (connectionDoc) => {
+        const fetchedConnections = await Promise.all(querySnapshot.docs.map(async (connectionDoc) => {
           const connectionData = connectionDoc.data();
           const childId = connectionData.childId;
           if (!childId) {
             throw new Error(`Missing childId for connection ${connectionDoc.id}`);
           }
-          console.log(`Fetching child document for childId: ${childId}`);
           const childDocRef = doc(db, `children/${childId}`);
           const childDoc = await getDoc(childDocRef);
           return {
@@ -83,11 +83,11 @@ export default {
           };
         }));
 
-        // Populate actions based on connections
-        actions.value = connections.value.map(conn => ({
+        connections.value = fetchedConnections.filter(conn => !conn.adminAction);
+        actions.value = fetchedConnections.filter(conn => conn.adminAction).map(conn => ({
           userName: conn.userName,
           userPhoneNumber: conn.userPhoneNumber,
-          adminAction: conn.adminAction || 'Pending',
+          adminAction: conn.adminAction,
           adminActionTimestamp: conn.adminActionTimestamp ? conn.adminActionTimestamp.toDate().toLocaleString() : 'N/A'
         }));
       } catch (error) {
@@ -110,7 +110,8 @@ export default {
           connectionStatus: 'confirmed'
         });
         showSnackbar('Connection confirmed successfully', 'success');
-        fetchConnections();
+        removeConnectionFromView(connection.id);
+        addActionToTable(connection, 'Confirmed');
       } catch (error) {
         showSnackbar(`Error: ${error.message}`, 'error');
       }
@@ -127,10 +128,24 @@ export default {
           connectionStatus: 'rejected'
         });
         showSnackbar('Connection rejected successfully', 'success');
-        fetchConnections();
+        removeConnectionFromView(connection.id);
+        addActionToTable(connection, 'Rejected');
       } catch (error) {
         showSnackbar(`Error: ${error.message}`, 'error');
       }
+    };
+
+    const removeConnectionFromView = (connectionId) => {
+      connections.value = connections.value.filter(conn => conn.id !== connectionId);
+    };
+
+    const addActionToTable = (connection, action) => {
+      actions.value.push({
+        userName: connection.userName,
+        userPhoneNumber: connection.userPhoneNumber,
+        adminAction: action,
+        adminActionTimestamp: new Date().toLocaleString()
+      });
     };
 
     const showSnackbar = (message, color) => {
@@ -153,6 +168,7 @@ export default {
     };
   }
 };
+
 </script>
 
 <style scoped>

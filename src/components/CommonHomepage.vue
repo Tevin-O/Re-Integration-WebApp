@@ -10,8 +10,15 @@
         ></v-text-field>
       </v-col>
     </v-row>
+    <v-row>
+      <v-col cols="12">
+        <div class="search-message">
+          <span class="highlight">Only recent entries</span> are being shown. Please use the search function above to find a specific child by name.
+        </div>
+      </v-col>
+    </v-row>
     <v-row v-if="children.length > 0">
-      <v-col v-for="child in children" :key="child.id" cols="12" md="4">
+      <v-col v-for="child in displayedChildren" :key="child.id" cols="12" md="4">
         <v-card class="mx-auto my-3" elevation="2" style="background-color: #f0f0f0; border-radius: 10px;">
           <v-img :src="child.photoUrl" height="200px" contain></v-img>
           <v-card-text class="text-center">
@@ -53,7 +60,10 @@
   </v-container>
 </template>
 
+
+
 <script>
+
 import { ref, onMounted } from 'vue';
 import { getFirestore, collection, query, where, getDocs, addDoc, updateDoc, doc, onSnapshot } from 'firebase/firestore';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -64,6 +74,7 @@ export default {
   setup() {
     const searchQuery = ref('');
     const children = ref([]);
+    const displayedChildren = ref([]);
     const connectionDialog = ref(false);
     const form = ref({
       userName: '',
@@ -100,6 +111,7 @@ export default {
         const q = query(collection(db, 'children'), where('name', '==', searchQuery.value.trim()));
         const querySnapshot = await getDocs(q);
         children.value = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        displayedChildren.value = children.value.slice(0, 6);  // Display up to 6 children
       }
     };
 
@@ -155,7 +167,7 @@ export default {
         fetchConnections(); // Refresh connections after submission
       } catch (error) {
         if (error.code === 'permission-denied') {
-          showSnackbar('Connection initiated successfully', 'success');
+          showSnackbar('Permission denied. Please check your Firestore rules.', 'error');
         } else {
           showSnackbar(`Error: ${error.message}`, 'error');
         }
@@ -166,6 +178,7 @@ export default {
       const q = query(collection(db, 'children'));
       onSnapshot(q, (querySnapshot) => {
         children.value = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        displayedChildren.value = children.value.slice(0, 6);  // Display up to 6 children
       });
     };
 
@@ -209,6 +222,7 @@ export default {
     return {
       searchQuery,
       children,
+      displayedChildren,
       connectionDialog,
       form,
       isFormValid,
@@ -222,6 +236,7 @@ export default {
 };
 </script>
 
+
 <style scoped>
 .v-img {
   border-radius: 10px;
@@ -233,4 +248,18 @@ export default {
 .v-card {
   border-radius: 10px;
 }
+.search-message {
+  font-size: 16px;
+  color: #666;
+  background-color: #f0f0f0;
+  padding: 10px 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+.highlight {
+  font-weight: bold;
+  color: #333;
+}
 </style>
+
