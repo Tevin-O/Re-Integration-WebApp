@@ -57,8 +57,25 @@
             <v-btn color="secondary" @click="initiateDonation(child)" small>
               <i class="fas fa-donate"></i> Help this Child
             </v-btn>
-            <div :id="'donate-button-' + child.id"></div>
           </v-card-actions>
+        </v-card>
+      </v-col>
+    </v-row>
+
+    <!-- Donation Options -->
+    <v-row v-if="showDonationOptions">
+      <v-col cols="12">
+        <v-card class="mx-auto my-3 donation-card" elevation="2">
+          <v-card-title class="d-flex justify-between align-center">
+            <span>Donation Options</span>
+            <v-btn icon @click="closeDonationOptions">
+              <v-icon>fas fa-times</v-icon>
+            </v-btn>
+          </v-card-title>
+          <v-card-text>
+            <h4 class="text-center">{{ selectedChild.name }}</h4>
+            <div class="paypal-button-container" :id="'donate-button-' + selectedChild.id"></div>
+          </v-card-text>
         </v-card>
       </v-col>
     </v-row>
@@ -71,7 +88,7 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, nextTick } from 'vue';
 import { getFirestore, collection, query, where, getDocs, addDoc, onSnapshot } from 'firebase/firestore';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 
@@ -82,6 +99,8 @@ export default {
     const children = ref([]);
     const displayedChildren = ref([]);
     const user = ref(null);
+    const selectedChild = ref(null);
+    const showDonationOptions = ref(false);
     const snackbar = ref({
       show: false,
       message: '',
@@ -115,18 +134,28 @@ export default {
       }
     };
 
-    const initiateDonation = (child) => {
+    const initiateDonation = async (child) => {
+      if (showDonationOptions.value) {
+        showSnackbar('Please close the current donation options before opening another.', 'warning');
+        return;
+      }
+      selectedChild.value = child;
+      showDonationOptions.value = true;
+      await nextTick(); // Wait for DOM to update
       const donationAmount = 10; // Set a default or dynamic donation amount
       if (window.paypal) {
-        renderPaypalButton(child, donationAmount);
+        renderPaypalButtons(child, donationAmount);
       } else {
-        loadPaypalSdk(() => renderPaypalButton(child, donationAmount));
+        loadPaypalSdk(() => renderPaypalButtons(child, donationAmount));
       }
     };
 
-    const renderPaypalButton = (child, donationAmount) => {
-      const donationHandler = paypal.Buttons({
-        createOrder: function (data, actions) {
+    const renderPaypalButtons = (child, donationAmount) => {
+      paypal.Buttons({
+        style: {
+          size: 'small'
+        },
+        createOrder: function(data, actions) {
           return actions.order.create({
             purchase_units: [{
               amount: {
@@ -135,22 +164,21 @@ export default {
             }]
           });
         },
-        onApprove: function (data, actions) {
-          return actions.order.capture().then(function (details) {
+        onApprove: function(data, actions) {
+          return actions.order.capture().then(function(details) {
             recordDonation(details, donationAmount, 'PayPal', child.id);
             showSnackbar('Donation successful!', 'success');
           });
         },
-        onError: function (err) {
+        onError: function(err) {
           showSnackbar(`Error: ${err.message}`, 'error');
         }
-      });
-      donationHandler.render(`#donate-button-${child.id}`);
+      }).render(`#donate-button-${child.id}`);
     };
 
     const loadPaypalSdk = (callback) => {
       const script = document.createElement('script');
-      script.src = `https://www.paypal.com/sdk/js?client-id=AQm-T_k_iDWUG8UcV-NIO1sBpwAsPJMeoMRylJXtXqYowbhIb-QW85s5P0LZ-o7jeCSJ7xoMhJRuAfKN`;
+      script.src = `https://www.paypal.com/sdk/js?client-id=AQm-T_k_iDWUG8UcV-NIO1sBpwAsPJMeoMRylJXtXqYowbhIb-QW85s5P0LZ-o7jeCSJ7xoMhJRuAfKN&components=buttons,marks&enable-funding=venmo,card`;
       script.onload = callback;
       document.head.appendChild(script);
     };
@@ -177,6 +205,10 @@ export default {
       });
     };
 
+    const closeDonationOptions = () => {
+      showDonationOptions.value = false;
+    };
+
     const showSnackbar = (message, color) => {
       snackbar.value.message = message;
       snackbar.value.color = color;
@@ -193,6 +225,9 @@ export default {
       displayedChildren,
       searchChild,
       initiateDonation,
+      closeDonationOptions,
+      showDonationOptions,
+      selectedChild,
       snackbar,
       showSearchMessage: ref(true)
     };
@@ -285,5 +320,15 @@ export default {
 .v-card-text p {
   font-size: 12px;
   margin: 3px 0;
+}
+.donation-card {
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-top: 20px;
+}
+.paypal-button-container {
+  text-align: center;
+  margin-top: 10px;
 }
 </style>
