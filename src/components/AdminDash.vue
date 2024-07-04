@@ -72,10 +72,6 @@
   </div>
 </template>
 
-
-
-
-
 <script>
 import { db } from '../main'; // Correctly import Firestore instance as db
 import { collection, query, onSnapshot } from 'firebase/firestore';
@@ -83,6 +79,8 @@ import ManageUsers from '../components/ManageUsers.vue';
 import ManageChildren from '../components/ManageChildren.vue';
 import ManageConnections from '../components/ManageConnections.vue';
 import CommonHomePage from '../components/CommonHomepage.vue';
+import StatisticalData from '../components/StatisticalData.vue';
+import TabularData from '../components/TabularData.vue';
 import { signOut } from 'firebase/auth';
 import { auth } from '../main'; // Import auth from main.js
 
@@ -96,6 +94,8 @@ export default {
         { icon: 'fas fa-user', text: 'Manage Users', component: 'ManageUsers', path: '/admin/users' },
         { icon: 'fas fa-child', text: 'Manage Children', component: 'ManageChildren', path: '/admin/children' },
         { icon: 'fas fa-link', text: 'Connections', component: 'ManageConnections', path: '/admin/connections' },
+        { icon: 'fas fa-chart-line', text: 'Statistical Data', component: 'StatisticalData', path: '/admin/users/statistics' },
+        { icon: 'fas fa-table', text: 'Tabular Data', component: 'TabularData', path: '/admin/users/tabular' }
       ],
       previousComponent: null,
       notifications: [],
@@ -108,6 +108,8 @@ export default {
     ManageUsers,
     ManageChildren,
     ManageConnections,
+    StatisticalData,
+    TabularData
   },
   methods: {
     navigateTo(component) {
@@ -169,8 +171,6 @@ export default {
     },
   },
 };
-
-
 </script>
 
 <style scoped>
@@ -178,6 +178,7 @@ export default {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  background-color: #f0f0f0; /* Darker shade of white */
 }
 
 .drawer-toggle-btn {
@@ -188,7 +189,7 @@ export default {
 }
 
 .floating-background {
-  background: #fff;
+  background: #f7f7f7; /* Slightly darker shade */
   border-radius: 15px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   padding: 20px;
@@ -212,7 +213,7 @@ export default {
   max-width: 400px;
   padding: 10px;
   border-radius: 8px;
-  background-color: #f5f5f5;
+  background-color: #ececec; /* Slightly darker shade */
 }
 
 .v-card-title {

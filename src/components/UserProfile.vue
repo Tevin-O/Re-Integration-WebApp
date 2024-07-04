@@ -1,11 +1,24 @@
 <template>
   <v-container>
+    <!-- Title -->
     <v-row>
-      <!-- User Information Summary -->
-      <v-col cols="12" md="6">
-        <v-card class="mx-auto my-5" elevation="2">
+      <v-col cols="12">
+        <v-card class="mx-auto my-5 floating-card-title" elevation="2">
+          <v-card-title class="d-flex justify-center align-center">
+            <v-icon class="mr-2">fas fa-user</v-icon>
+            <h2 class="title-text">User Profile</h2>
+          </v-card-title>
+        </v-card>
+      </v-col>
+    </v-row>
+
+    <!-- Main Content -->
+    <v-row>
+      <!-- User Information Card -->
+      <v-col cols="12" md="4">
+        <v-card class="mx-auto my-5 user-info-card" elevation="2">
           <v-card-title class="d-flex justify-center">
-            <v-avatar size="120">
+            <v-avatar size="80">
               <img :src="userInfo.photoURL" alt="Profile Photo" />
             </v-avatar>
           </v-card-title>
@@ -19,161 +32,187 @@
         </v-card>
       </v-col>
 
-      <!-- Change Password -->
-      <v-col cols="12" md="6">
-        <v-card class="mx-auto my-5" elevation="2">
-          <v-card-title>Change Password</v-card-title>
-          <v-card-text>
-            <form @submit.prevent="changePassword">
-              <v-text-field
-                v-model="oldPassword"
-                label="Old Password"
-                type="password"
-                prepend-inner-icon="fas fa-lock"
-                required
-              ></v-text-field>
-              <v-text-field
-                v-model="newPassword"
-                label="New Password"
-                type="password"
-                prepend-inner-icon="fas fa-lock"
-                required
-              ></v-text-field>
-              <v-text-field
-                v-model="confirmPassword"
-                label="Confirm New Password"
-                type="password"
-                prepend-inner-icon="fas fa-lock"
-                required
-              ></v-text-field>
-              <v-btn type="submit" color="primary" class="mt-4" block title="Change Password">Change Password</v-btn>
-            </form>
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
+      <!-- Forms Section -->
+      <v-col cols="12" md="8">
+        <v-row>
+          <!-- Icons for Forms -->
+          <v-col cols="12">
+            <v-card class="mx-auto my-5" elevation="2">
+              <v-card-title class="d-flex justify-center align-center">
+                <v-btn icon @click="showForm('changePassword')">
+                  <v-icon>fas fa-lock</v-icon>
+                </v-btn>
+                <v-btn icon @click="showForm('updateInfo')">
+                  <v-icon>fas fa-edit</v-icon>
+                </v-btn>
+                <v-btn icon @click="showForm('changeProfilePicture')">
+                  <v-icon>fas fa-camera</v-icon>
+                </v-btn>
+                <v-btn icon @click="showForm('paymentMethod')">
+                  <v-icon>fas fa-credit-card</v-icon>
+                </v-btn>
+              </v-card-title>
+            </v-card>
+          </v-col>
 
-    <v-row>
-      <!-- Update User Information -->
-      <v-col cols="12" md="6">
-        <v-card class="mx-auto my-5" elevation="2">
-          <v-card-title>Update User Information</v-card-title>
-          <v-card-text>
-            <form @submit.prevent="updateProfile">
-              <v-text-field
-                v-model="phoneNumber"
-                label="Phone Number"
-                prepend-inner-icon="fas fa-phone"
-                required
-              ></v-text-field>
-              <v-text-field
-                v-model="address"
-                label="Address"
-                prepend-inner-icon="fas fa-home"
-                required
-              ></v-text-field>
-              <v-divider class="my-4"></v-divider>
-              <p><strong>Gender</strong></p>
-              <v-radio-group v-model="gender" row>
-                <v-radio label="Male" value="male"></v-radio>
-                <v-radio label="Female" value="female"></v-radio>
-              </v-radio-group>
-              <v-divider class="my-4"></v-divider>
-              <v-btn type="submit" color="primary" class="mt-4" block title="Update Profile">Update Profile</v-btn>
-            </form>
-          </v-card-text>
-        </v-card>
-      </v-col>
+          <!-- Change Password Form -->
+          <v-col cols="12" v-if="activeForm === 'changePassword'">
+            <v-card class="mx-auto my-5 form-card" elevation="2">
+              <v-card-title>Change Password</v-card-title>
+              <v-card-text>
+                <form @submit.prevent="changePassword">
+                  <v-text-field
+                    v-model="oldPassword"
+                    label="Old Password"
+                    type="password"
+                    prepend-inner-icon="fas fa-lock"
+                    required
+                  ></v-text-field>
+                  <v-text-field
+                    v-model="newPassword"
+                    label="New Password"
+                    type="password"
+                    prepend-inner-icon="fas fa-lock"
+                    required
+                  ></v-text-field>
+                  <v-text-field
+                    v-model="confirmPassword"
+                    label="Confirm New Password"
+                    type="password"
+                    prepend-inner-icon="fas fa-lock"
+                    required
+                  ></v-text-field>
+                  <v-btn type="submit" color="primary" class="mt-4" block title="Change Password">Change Password</v-btn>
+                </form>
+              </v-card-text>
+            </v-card>
+          </v-col>
 
-      <!-- Change Profile Picture Button and Payment Method Form -->
-      <v-col cols="12" md="6">
-        <v-card class="mx-auto my-5" elevation="2">
-          <v-card-title>Change Profile Picture</v-card-title>
-          <v-card-text>
-            <v-btn @click="selectProfilePicture" color="primary">Change Profile Picture</v-btn>
-            <input type="file" ref="fileInput" @change="uploadProfilePicture" style="display: none;" />
-          </v-card-text>
-        </v-card>
+          <!-- Update User Information Form -->
+          <v-col cols="12" v-if="activeForm === 'updateInfo'">
+            <v-card class="mx-auto my-5 form-card" elevation="2">
+              <v-card-title>Update User Information</v-card-title>
+              <v-card-text>
+                <form @submit.prevent="updateProfile">
+                  <v-text-field
+                    v-model="phoneNumber"
+                    label="Phone Number"
+                    prepend-inner-icon="fas fa-phone"
+                    required
+                  ></v-text-field>
+                  <v-text-field
+                    v-model="address"
+                    label="Address"
+                    prepend-inner-icon="fas fa-home"
+                    required
+                  ></v-text-field>
+                  <v-divider class="my-4"></v-divider>
+                  <p><strong>Gender</strong></p>
+                  <v-radio-group v-model="gender" row>
+                    <v-radio label="Male" value="male"></v-radio>
+                    <v-radio label="Female" value="female"></v-radio>
+                  </v-radio-group>
+                  <v-divider class="my-4"></v-divider>
+                  <v-btn type="submit" color="primary" class="mt-4" block title="Update Profile">Update Profile</v-btn>
+                </form>
+              </v-card-text>
+            </v-card>
+          </v-col>
 
-        <!-- Add or Update Payment Method -->
-        <v-card class="mx-auto my-5" elevation="2">
-          <v-card-title v-if="!hasPaymentMethod">Add Payment Method</v-card-title>
-          <v-card-title v-else>Update Payment Method</v-card-title>
-          <v-card-text>
-            <v-radio-group v-if="!hasPaymentMethod" v-model="paymentMethod" row>
-              <v-radio label="Card" value="card"></v-radio>
-              <v-radio label="PayPal" value="paypal"></v-radio>
-            </v-radio-group>
-            <v-radio-group v-else v-model="newPaymentMethod" row>
-              <v-radio label="Card" value="card"></v-radio>
-              <v-radio label="PayPal" value="paypal"></v-radio>
-            </v-radio-group>
+          <!-- Change Profile Picture Form -->
+          <v-col cols="12" v-if="activeForm === 'changeProfilePicture'">
+            <v-card class="mx-auto my-5 form-card" elevation="2">
+              <v-card-title>Change Profile Picture</v-card-title>
+              <v-card-text>
+                <v-btn @click="selectProfilePicture" color="primary">Change Profile Picture</v-btn>
+                <v-btn @click="removeProfilePicture" color="secondary">Remove Profile Picture</v-btn>
+                <input type="file" ref="fileInput" @change="uploadProfilePicture" style="display: none;" />
+              </v-card-text>
+            </v-card>
+          </v-col>
 
-            <form v-if="!hasPaymentMethod && paymentMethod === 'card'" @submit.prevent="addPaymentMethod">
-              <v-text-field
-                v-model="cardNumber"
-                label="Card Number"
-                prepend-inner-icon="fas fa-credit-card"
-                required
-              ></v-text-field>
-              <v-text-field
-                v-model="expiryDate"
-                label="Expiry Date (MM/YY)"
-                prepend-inner-icon="fas fa-calendar-alt"
-                required
-              ></v-text-field>
-              <v-text-field
-                v-model="cvv"
-                label="CVV"
-                type="password"
-                prepend-inner-icon="fas fa-lock"
-                required
-              ></v-text-field>
-              <v-btn type="submit" color="primary" class="mt-4" block title="Add Card">Add Card</v-btn>
-            </form>
-            <form v-if="!hasPaymentMethod && paymentMethod === 'paypal'" @submit.prevent="addPaymentMethod">
-              <v-text-field
-                v-model="paypalEmail"
-                label="PayPal Email"
-                prepend-inner-icon="fas fa-envelope"
-                required
-              ></v-text-field>
-              <v-btn type="submit" color="primary" class="mt-4" block title="Add PayPal">Add PayPal</v-btn>
-            </form>
+          <!-- Payment Method Form -->
+          <v-col cols="12" v-if="activeForm === 'paymentMethod'">
+            <v-card class="mx-auto my-5 form-card" elevation="2">
+              <v-card-title v-if="!hasPaymentMethod">Add Payment Method</v-card-title>
+              <v-card-title v-else>Update Payment Method</v-card-title>
+              <v-card-text>
+                <v-radio-group v-if="!hasPaymentMethod" v-model="paymentMethod" row>
+                  <v-radio label="Card" value="card"></v-radio>
+                  <v-radio label="PayPal" value="paypal"></v-radio>
+                </v-radio-group>
+                <v-radio-group v-else v-model="newPaymentMethod" row>
+                  <v-radio label="Card" value="card"></v-radio>
+                  <v-radio label="PayPal" value="paypal"></v-radio>
+                </v-radio-group>
 
-            <form v-if="hasPaymentMethod && newPaymentMethod === 'card'" @submit.prevent="updatePaymentMethod">
-              <v-text-field
-                v-model="newCardNumber"
-                label="Card Number"
-                prepend-inner-icon="fas fa-credit-card"
-                required
-              ></v-text-field>
-              <v-text-field
-                v-model="newExpiryDate"
-                label="Expiry Date (MM/YY)"
-                prepend-inner-icon="fas fa-calendar-alt"
-                required
-              ></v-text-field>
-              <v-text-field
-                v-model="newCvv"
-                label="CVV"
-                type="password"
-                prepend-inner-icon="fas fa-lock"
-                required
-              ></v-text-field>
-              <v-btn type="submit" color="primary" class="mt-4" block title="Update Card">Update Card</v-btn>
-            </form>
-            <form v-if="hasPaymentMethod && newPaymentMethod === 'paypal'" @submit.prevent="updatePaymentMethod">
-              <v-text-field
-                v-model="newPaypalEmail"
-                label="PayPal Email"
-                prepend-inner-icon="fas fa-envelope"
-                required
-              ></v-text-field>
-              <v-btn type="submit" color="primary" class="mt-4" block title="Update PayPal">Update PayPal</v-btn>
-            </form>
-          </v-card-text>
-        </v-card>
+                <form v-if="!hasPaymentMethod && paymentMethod === 'card'" @submit.prevent="addPaymentMethod">
+                  <v-text-field
+                    v-model="cardNumber"
+                    label="Card Number"
+                    prepend-inner-icon="fas fa-credit-card"
+                    required
+                  ></v-text-field>
+                  <v-text-field
+                    v-model="expiryDate"
+                    label="Expiry Date (MM/YY)"
+                    prepend-inner-icon="fas fa-calendar-alt"
+                    required
+                  ></v-text-field>
+                  <v-text-field
+                    v-model="cvv"
+                    label="CVV"
+                    type="password"
+                    prepend-inner-icon="fas fa-lock"
+                    required
+                  ></v-text-field>
+                  <v-btn type="submit" color="primary" class="mt-4" block title="Add Card">Add Card</v-btn>
+                </form>
+                <form v-if="!hasPaymentMethod && paymentMethod === 'paypal'" @submit.prevent="addPaymentMethod">
+                  <v-text-field
+                    v-model="paypalEmail"
+                    label="PayPal Email"
+                    prepend-inner-icon="fas fa-envelope"
+                    required
+                  ></v-text-field>
+                  <v-btn type="submit" color="primary" class="mt-4" block title="Add PayPal">Add PayPal</v-btn>
+                </form>
+
+                <form v-if="hasPaymentMethod && newPaymentMethod === 'card'" @submit.prevent="updatePaymentMethod">
+                  <v-text-field
+                    v-model="newCardNumber"
+                    label="Card Number"
+                    prepend-inner-icon="fas fa-credit-card"
+                    required
+                  ></v-text-field>
+                  <v-text-field
+                    v-model="newExpiryDate"
+                    label="Expiry Date (MM/YY)"
+                    prepend-inner-icon="fas fa-calendar-alt"
+                    required
+                  ></v-text-field>
+                  <v-text-field
+                    v-model="newCvv"
+                    label="CVV"
+                    type="password"
+                    prepend-inner-icon="fas fa-lock"
+                    required
+                  ></v-text-field>
+                  <v-btn type="submit" color="primary" class="mt-4" block title="Update Card">Update Card</v-btn>
+                </form>
+                <form v-if="hasPaymentMethod && newPaymentMethod === 'paypal'" @submit.prevent="updatePaymentMethod">
+                  <v-text-field
+                    v-model="newPaypalEmail"
+                    label="PayPal Email"
+                    prepend-inner-icon="fas fa-envelope"
+                    required
+                  ></v-text-field>
+                  <v-btn type="submit" color="primary" class="mt-4" block title="Update PayPal">Update PayPal</v-btn>
+                </form>
+              </v-card-text>
+            </v-card>
+          </v-col>
+        </v-row>
       </v-col>
     </v-row>
   </v-container>
@@ -212,6 +251,8 @@ export default {
       photoURL: '',
       paymentMethods: {}
     });
+
+    const activeForm = ref('');
 
     const auth = getAuth();
     const storage = getStorage();
@@ -394,6 +435,29 @@ export default {
       }
     };
 
+    const removeProfilePicture = async () => {
+      try {
+        const user = auth.currentUser;
+        if (user) {
+          if (userInfo.value.photoURL) {
+            const photoRef = storageRef(storage, userInfo.value.photoURL);
+            await deleteObject(photoRef);
+
+            const userDoc = doc(getFirestore(), 'users', user.uid);
+            await updateDoc(userDoc, { photoURL: '' });
+
+            userInfo.value.photoURL = '';
+            alert('Profile picture removed successfully');
+          } else {
+            alert('No profile picture to remove');
+          }
+        }
+      } catch (error) {
+        console.error('Error removing profile picture', error);
+        alert('Failed to remove profile picture. Please try again.');
+      }
+    };
+
     const hasPaymentMethod = computed(() => {
       const methods = userInfo.value.paymentMethods;
       return methods.card || methods.paypal;
@@ -409,6 +473,10 @@ export default {
         return 'Not specified';
       }
     });
+
+    const showForm = (form) => {
+      activeForm.value = form;
+    };
 
     onMounted(() => {
       fetchUserInfo();
@@ -439,16 +507,42 @@ export default {
       fetchUserInfo,
       selectProfilePicture,
       uploadProfilePicture,
+      removeProfilePicture,
       fileInput,
       hasPaymentMethod,
-      paymentMethodSummary
+      paymentMethodSummary,
+      activeForm,
+      showForm
     };
   },
 };
 </script>
 
-<style>
-.v-avatar img {
-  border-radius: 50%;
+<style scoped>
+.floating-card-title {
+  background-color: #f0f0f0;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+.user-info-card {
+  background-color: #f5f5f5;
+  border-radius: 15px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 10px;
+  height: auto;
+}
+.form-card {
+  background-color: #f5f5f5;
+  border-radius: 15px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 10px;
+  height: auto;
+}
+.v-card-title {
+  font-size: 20px;
+  font-weight: bold;
+}
+.v-btn {
+  margin: 0 5px;
 }
 </style>

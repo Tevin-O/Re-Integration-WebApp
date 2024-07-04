@@ -1,48 +1,74 @@
 <template>
   <v-container>
+    <!-- Floating Title Bar with Icon -->
     <v-row>
       <v-col cols="12">
+        <v-card class="mx-auto my-5 floating-card-title" elevation="2">
+          <v-card-title class="d-flex justify-center align-center">
+            <v-icon class="mr-2">fas fa-donate</v-icon>
+            <h2 class="title-text">Donations</h2>
+          </v-card-title>
+        </v-card>
+      </v-col>
+    </v-row>
+
+    <!-- Search Bar -->
+    <v-row>
+      <v-col cols="12" md="6">
         <v-text-field
           v-model="searchQuery"
           label="Search for a child"
           prepend-inner-icon="fas fa-search"
           @input="searchChild"
+          outlined
+          dense
+          clearable
         ></v-text-field>
       </v-col>
     </v-row>
-    <v-row>
+
+    <!-- Search Message -->
+    <v-row v-if="showSearchMessage">
       <v-col cols="12">
-        <div class="search-message">
+        <v-alert 
+          type="info" 
+          dense 
+          dismissible 
+          @input="showSearchMessage = false"
+          class="search-message">
           <span class="highlight">Only recent entries</span> are being shown. Please use the search function above to find a specific child by name.
-        </div>
+        </v-alert>
       </v-col>
     </v-row>
+
+    <!-- Children List -->
     <v-row v-if="children.length > 0">
-      <v-col v-for="child in displayedChildren" :key="child.id" cols="12" md="4">
-        <v-card class="mx-auto my-3" elevation="2" style="background-color: #f0f0f0; border-radius: 10px;">
-          <v-img :src="child.photoUrl" height="200px" contain></v-img>
+      <v-col v-for="child in displayedChildren" :key="child.id" cols="12" sm="6" md="4" lg="3">
+        <v-card class="mx-auto my-3 child-card" elevation="2">
+          <v-img :src="child.photoUrl" height="120px" contain></v-img>
           <v-card-text class="text-center">
-            <h3>{{ child.name }}</h3>
+            <h4>{{ child.name }}</h4>
             <p><strong>Age:</strong> {{ child.age }}</p>
             <p><strong>Connection Status:</strong> {{ child.connectionStatus }}</p>
             <p><strong>Parents Status:</strong> {{ child.parents }}</p>
             <p><strong>Address:</strong> {{ child.address }}</p>
           </v-card-text>
           <v-card-actions class="justify-center">
-            <v-btn color="secondary" @click="initiateDonation(child)">
+            <v-btn color="secondary" @click="initiateDonation(child)" small>
               <i class="fas fa-donate"></i> Help this Child
             </v-btn>
+            <div :id="'donate-button-' + child.id"></div>
           </v-card-actions>
-          <div :id="'donate-button-' + child.id"></div>
         </v-card>
       </v-col>
     </v-row>
+
+    <!-- Snackbar for Notifications -->
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="3000">
       {{ snackbar.message }}
     </v-snackbar>
   </v-container>
 </template>
-
 
 <script>
 import { ref, onMounted } from 'vue';
@@ -74,13 +100,18 @@ export default {
     });
 
     const searchChild = async () => {
-      if (searchQuery.value.trim() === '') {
-        fetchChildren();  // If search is empty, fetch all children
-      } else {
-        const q = query(collection(db, 'children'), where('name', '==', searchQuery.value.trim()));
-        const querySnapshot = await getDocs(q);
-        children.value = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        displayedChildren.value = children.value.slice(0, 6);  // Display up to 6 children
+      try {
+        if (searchQuery.value.trim() === '') {
+          fetchChildren();  // If search is empty, fetch all children
+        } else {
+          const querySnapshot = await getDocs(collection(db, 'children'));
+          children.value = querySnapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .filter(child => child.name.toLowerCase().includes(searchQuery.value.toLowerCase()));
+          displayedChildren.value = children.value.slice(0, 6);  // Display up to 6 children
+        }
+      } catch (error) {
+        showSnackbar(`Error searching children: ${error.message}`, 'error');
       }
     };
 
@@ -162,13 +193,62 @@ export default {
       displayedChildren,
       searchChild,
       initiateDonation,
-      snackbar
+      snackbar,
+      showSearchMessage: ref(true)
     };
   }
 };
 </script>
 
 <style scoped>
+.floating-card-title {
+  background-color: #f0f0f0;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+.floating-card {
+  background-color: #f5f5f5;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease-in-out;
+}
+.floating-card:hover {
+  transform: translateY(-5px);
+}
+.v-card-title {
+  font-size: 24px;
+  font-weight: bold;
+}
+.v-text-field,
+.v-textarea {
+  margin-bottom: 10px;
+}
+.v-btn {
+  margin-top: 10px;
+}
+.v-avatar img {
+  border-radius: 50%;
+}
+.v-data-table th,
+.v-data-table td {
+  padding: 8px;
+  text-align: left;
+  vertical-align: middle;
+}
+.v-data-table th {
+  background-color: #f5f5f5;
+}
+.v-data-table tbody tr:nth-child(odd) {
+  background-color: #f9f9f9;
+}
+.title-text {
+  font-size: 24px;
+  font-weight: bold;
+}
+.v-chip {
+  font-size: 16px;
+  font-weight: bold;
+}
 .v-img {
   border-radius: 10px;
   object-fit: cover;
@@ -180,7 +260,7 @@ export default {
   border-radius: 10px;
 }
 .search-message {
-  font-size: 16px;
+  font-size: 14px;
   color: #666;
   background-color: #f0f0f0;
   padding: 10px 15px;
@@ -191,5 +271,19 @@ export default {
 .highlight {
   font-weight: bold;
   color: #333;
+}
+.child-card {
+  max-width: 100%;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.v-card-text h4 {
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+.v-card-text p {
+  font-size: 12px;
+  margin: 3px 0;
 }
 </style>
