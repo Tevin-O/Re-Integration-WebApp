@@ -3,25 +3,15 @@
     <v-row>
       <!-- Manage Users Title and Total Count -->
       <v-col cols="12">
-        <v-card class="mx-auto my-5" elevation="2">
-          <v-card-title class="d-flex justify-center">
-            <h2>Manage Users</h2>
+        <v-card class="mx-auto my-5 floating-card" elevation="2">
+          <v-card-title class="d-flex justify-center align-center">
+            <v-icon class="mr-2">fas fa-users</v-icon>
+            <h2 class="title-text">Manage Users</h2>
           </v-card-title>
           <v-card-text class="text-center">
-            <p>Total users: {{ userCount }}</p>
-            <p>Total children: {{ childrenCount }}</p>
-          </v-card-text>
-        </v-card>
-      </v-col>
-
-      <!-- User and Children Statistics -->
-      <v-col cols="12">
-        <v-card class="mx-auto my-5" elevation="2">
-          <v-card-title>User and Children Statistics</v-card-title>
-          <v-card-text>
-            <div v-if="chartOptions">
-              <highcharts :options="chartOptions"></highcharts>
-            </div>
+            <v-chip class="ma-2" color="primary" text-color="white">
+              <v-icon left>fas fa-user</v-icon> Total users: {{ userCount }}
+            </v-chip>
           </v-card-text>
         </v-card>
       </v-col>
@@ -29,258 +19,179 @@
       <!-- Current Users -->
       <v-col cols="12">
         <v-card class="mx-auto my-5 floating-card" elevation="2">
-          <v-card-title>Current Users</v-card-title>
+          <v-card-title>
+            <v-row>
+              <v-col cols="6">
+                <h3 class="title-text">Current Users</h3>
+              </v-col>
+              <v-col cols="6" class="d-flex justify-end">
+                <v-text-field 
+                  v-model="searchUserName" 
+                  label="Search by Name" 
+                  prepend-inner-icon="fas fa-search" 
+                  @input="searchUserByName" 
+                  outlined 
+                  dense 
+                  clearable>
+                </v-text-field>
+                <v-btn v-if="searchUserName" @click="clearSearch" color="primary" class="ml-2">
+                  Show All
+                </v-btn>
+              </v-col>
+            </v-row>
+          </v-card-title>
           <v-card-text>
-            <v-simple-table class="user-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="user in currentUsers" :key="user.id">
-                  <td>{{ user.name }}</td>
-                  <td>{{ user.email }}</td>
-                </tr>
-              </tbody>
-            </v-simple-table>
+            <v-data-table :headers="userHeaders" :items="paginatedUsers" class="elevation-1" item-key="id" :items-per-page="5">
+              <template v-slot:item.actions="{ item }">
+                <v-btn small color="warning" @click="promptDeactivateUser(item)" v-if="item.active">Deactivate</v-btn>
+                <v-btn small color="success" @click="promptActivateUser(item)" v-else>Activate</v-btn>
+              </template>
+            </v-data-table>
           </v-card-text>
         </v-card>
       </v-col>
 
-      <!-- Search and Display User Information -->
+      <!-- Admin Actions Log -->
       <v-col cols="12">
         <v-card class="mx-auto my-5 floating-card" elevation="2">
-          <v-card-title>Search User by ID</v-card-title>
+          <v-card-title>
+            <h3 class="title-text">Admin Actions Log</h3>
+          </v-card-title>
           <v-card-text>
-            <v-text-field v-model="searchUserId" label="Enter User ID" outlined dense></v-text-field>
-            <v-btn @click="searchUserById" color="primary" class="mt-4" block>Search</v-btn>
-            <div v-if="searchedUser">
-              <v-simple-table>
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Address</th>
-                    <th>Phone</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>{{ searchedUser.name }}</td>
-                    <td>{{ searchedUser.email }}</td>
-                    <td>{{ searchedUser.address }}</td>
-                    <td>{{ searchedUser.phone }}</td>
-                  </tr>
-                </tbody>
-              </v-simple-table>
-
-              <!-- Additional Functionalities for Searched User -->
-              <v-divider class="my-4"></v-divider>
-              <!-- Reset Password -->
-              <v-btn @click="resetPassword" color="primary" class="mt-4" block>Reset Password</v-btn>
-              <!-- Deactivate User -->
-              <v-btn v-if="searchedUser.active" @click="confirmDeactivateUser" color="warning" class="mt-4" block>Deactivate User</v-btn>
-              <!-- Activate User -->
-              <v-btn v-if="!searchedUser.active" @click="confirmActivateUser(searchedUser.id)" color="success" class="mt-4" block>Activate User</v-btn>
-              <!-- Send Notification -->
-              <v-btn @click="showNotificationPrompt" color="info" class="mt-4" block>Send Notification</v-btn>
-              <!-- Notification Message Prompt -->
-              <v-dialog v-model="notificationPrompt" max-width="500px">
-                <v-card>
-                  <v-card-title class="headline">Send Notification</v-card-title>
-                  <v-card-text>
-                    <v-textarea v-model="notificationMessage" label="Message" outlined dense></v-textarea>
-                  </v-card-text>
-                  <v-card-actions>
-                    <v-spacer></v-spacer>
-                    <v-btn @click="notificationPrompt = false">Cancel</v-btn>
-                    <v-btn @click="sendNotification" color="info">Send</v-btn>
-                  </v-card-actions>
-                </v-card>
-              </v-dialog>
-            </div>
+            <v-data-table :headers="actionHeaders" :items="filteredAdminActions" class="elevation-1" item-key="id" :items-per-page="5">
+              <template v-slot:item.timestamp="{ item }">
+                {{ new Date(item.timestamp.seconds * 1000).toLocaleString() }}
+              </template>
+              <template v-slot:item.username="{ item }">
+                {{ item.username }}
+              </template>
+              <template v-slot:item.comment="{ item }">
+                {{ item.comment }}
+              </template>
+            </v-data-table>
           </v-card-text>
         </v-card>
       </v-col>
 
-      <!-- Deactivated Users Table -->
-      <v-col cols="12">
-        <v-card class="mx-auto my-5 floating-card" elevation="2">
-          <v-card-title>Deactivated Users</v-card-title>
+      <!-- Snackbar for Notifications -->
+      <v-snackbar v-model="snackbar.show" :color="snackbar.color" top right>
+        {{ snackbar.message }}
+        <v-btn text @click="snackbar.show = false">Close</v-btn>
+      </v-snackbar>
+      
+      <!-- Confirm Deactivation Dialog -->
+      <v-dialog v-model="confirmDeactivateDialog" max-width="500px">
+        <v-card>
+          <v-card-title class="headline">Confirm Deactivation</v-card-title>
           <v-card-text>
-            <v-simple-table class="user-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="user in deactivatedUsers" :key="user.id">
-                  <td>{{ user.name }}</td>
-                  <td>{{ user.email }}</td>
-                  <td>
-                    <v-btn small @click="confirmActivateUser(user.id)">Activate</v-btn>
-                  </td>
-                </tr>
-              </tbody>
-            </v-simple-table>
+            <v-textarea v-model="adminComment" label="Reason for deactivation" outlined dense></v-textarea>
+            Are you sure you want to deactivate this user?
           </v-card-text>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn @click="confirmDeactivateDialog = false">Cancel</v-btn>
+            <v-btn @click="deactivateUser" color="warning">Deactivate</v-btn>
+          </v-card-actions>
         </v-card>
-      </v-col>
+      </v-dialog>
 
-      <!-- Donations by Users -->
-      <v-col cols="12">
-        <v-card class="mx-auto my-5 floating-card" elevation="2">
-          <v-card-title>Donations by Users</v-card-title>
+      <!-- Confirm Activation Dialog -->
+      <v-dialog v-model="confirmActivateDialog" max-width="500px">
+        <v-card>
+          <v-card-title class="headline">Confirm Activation</v-card-title>
           <v-card-text>
-            <v-simple-table>
-              <thead>
-                <tr>
-                  <th>User</th>
-                  <th>Donation Amount</th>
-                  <th>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="donation in donations" :key="donation.id">
-                  <td>{{ donation.user }}</td>
-                  <td>{{ donation.amount }}</td>
-                  <td>{{ donation.date }}</td>
-                </tr>
-              </tbody>
-            </v-simple-table>
+            <v-textarea v-model="adminComment" label="Reason for activation" outlined dense></v-textarea>
+            Are you sure you want to activate this user?
           </v-card-text>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn @click="confirmActivateDialog = false">Cancel</v-btn>
+            <v-btn @click="activateUser" color="success">Activate</v-btn>
+          </v-card-actions>
         </v-card>
-      </v-col>
+      </v-dialog>
     </v-row>
-    <!-- Snackbar for Notifications -->
-    <v-snackbar v-model="snackbar.show" :color="snackbar.color" top right>
-      {{ snackbar.message }}
-      <v-btn text @click="snackbar.show = false">Close</v-btn>
-    </v-snackbar>
-    <!-- Confirm Deactivation Dialog -->
-    <v-dialog v-model="confirmDeactivateDialog" max-width="500px">
-      <v-card>
-        <v-card-title class="headline">Confirm Deactivation</v-card-title>
-        <v-card-text>Are you sure you want to deactivate this user?</v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn @click="confirmDeactivateDialog = false">Cancel</v-btn>
-          <v-btn @click="deactivateUser" color="warning">Deactivate</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-    <!-- Confirm Activation Dialog -->
-    <v-dialog v-model="confirmActivateDialog" max-width="500px">
-      <v-card>
-        <v-card-title class="headline">Confirm Activation</v-card-title>
-        <v-card-text>Are you sure you want to activate this user?</v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn @click="confirmActivateDialog = false">Cancel</v-btn>
-          <v-btn @click="activateUser(confirmActivateDialogUserId)" color="success">Activate</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
   </v-container>
 </template>
 
 <script>
 import { ref, computed, onMounted } from 'vue';
-import { getFirestore, collection, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
-import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
-import Highcharts from 'highcharts';
-import HighchartsVue from 'highcharts-vue';
+import { getFirestore, collection, getDocs, doc, updateDoc, addDoc } from 'firebase/firestore';
 
 export default {
   name: 'ManageUsers',
-  components: {
-    HighchartsVue
-  },
   setup() {
     const db = getFirestore();
-    const auth = getAuth();
     const users = ref([]);
-    const children = ref([]);
     const userCount = ref(0);
-    const childrenCount = ref(0);
-    const donations = ref([]);
+    const adminActions = ref([]);
     const snackbar = ref({
       show: false,
       message: '',
       color: ''
     });
 
-    const searchUserId = ref('');
-    const searchedUser = ref(null);
-
-    const notificationPrompt = ref(false);
-    const notificationMessage = ref('');
+    const searchUserName = ref('');
+    const selectedUser = ref(null);
+    const adminComment = ref('');
 
     const confirmDeactivateDialog = ref(false);
     const confirmActivateDialog = ref(false);
-    const confirmActivateDialogUserId = ref('');
 
     const loadUsers = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, 'users'));
         users.value = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         userCount.value = users.value.length;
-        setTimeout(updateChartOptions, 500); // Add a delay before updating chart options
       } catch (error) {
         snackbar.value = { show: true, message: 'Error loading users: ' + error.message, color: 'error' };
       }
     };
 
-    const loadChildren = async () => {
+    const loadAdminActions = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, 'children'));
-        children.value = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        childrenCount.value = children.value.length;
-        setTimeout(updateChartOptions, 500); // Add a delay before updating chart options
+        const querySnapshot = await getDocs(collection(db, 'adminActions'));
+        adminActions.value = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       } catch (error) {
-        snackbar.value = { show: true, message: 'Error loading children: ' + error.message, color: 'error' };
+        snackbar.value = { show: true, message: 'Error loading admin actions: ' + error.message, color: 'error' };
       }
     };
 
-    const loadDonations = async () => {
+    const searchUserByName = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, 'donations'));
-        donations.value = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (searchUserName.value.trim() === '') {
+          loadUsers(); // If search is empty, load all users
+        } else {
+          const querySnapshot = await getDocs(collection(db, 'users'));
+          users.value = querySnapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .filter(user => user.name.toLowerCase().includes(searchUserName.value.toLowerCase()));
+        }
       } catch (error) {
-        snackbar.value = { show: true, message: 'Error loading donations: ' + error.message, color: 'error' };
+        snackbar.value = { show: true, message: 'Error searching users: ' + error.message, color: 'error' };
       }
     };
 
-    const searchUserById = async () => {
-      const userDoc = await getDoc(doc(db, 'users', searchUserId.value));
-      if (userDoc.exists()) {
-        searchedUser.value = { id: userDoc.id, ...userDoc.data() };
-      } else {
-        snackbar.value = { show: true, message: 'User not found', color: 'error' };
-      }
+    const clearSearch = () => {
+      searchUserName.value = '';
+      loadUsers();
     };
 
-    const resetPassword = async () => {
-      try {
-        await sendPasswordResetEmail(auth, searchedUser.value.email);
-        snackbar.value = { show: true, message: 'Password reset email sent', color: 'success' };
-      } catch (error) {
-        snackbar.value = { show: true, message: 'Error resetting password: ' + error.message, color: 'error' };
-      }
-    };
-
-    const confirmDeactivateUser = () => {
+    const promptDeactivateUser = (user) => {
+      selectedUser.value = user;
       confirmDeactivateDialog.value = true;
+    };
+
+    const promptActivateUser = (user) => {
+      selectedUser.value = user;
+      confirmActivateDialog.value = true;
     };
 
     const deactivateUser = async () => {
       try {
-        await updateDoc(doc(db, 'users', searchedUser.value.id), { active: false });
+        const userDoc = doc(db, 'users', selectedUser.value.id);
+        await updateDoc(userDoc, { active: false });
+        await addAdminAction('deactivate');
         snackbar.value = { show: true, message: 'User deactivated successfully', color: 'warning' };
         confirmDeactivateDialog.value = false;
         loadUsers();
@@ -289,14 +200,11 @@ export default {
       }
     };
 
-    const confirmActivateUser = (userId) => {
-      confirmActivateDialogUserId.value = userId;
-      confirmActivateDialog.value = true;
-    };
-
-    const activateUser = async (userId) => {
+    const activateUser = async () => {
       try {
-        await updateDoc(doc(db, 'users', userId), { active: true });
+        const userDoc = doc(db, 'users', selectedUser.value.id);
+        await updateDoc(userDoc, { active: true });
+        await addAdminAction('activate');
         snackbar.value = { show: true, message: 'User activated successfully', color: 'success' };
         confirmActivateDialog.value = false;
         loadUsers();
@@ -305,82 +213,87 @@ export default {
       }
     };
 
-    const sendNotification = async () => {
+    const addAdminAction = async (action) => {
       try {
-        await updateDoc(doc(db, 'users', searchUserId.value), { notification: notificationMessage.value });
-        snackbar.value = { show: true, message: 'Notification sent successfully', color: 'info' };
-        notificationPrompt.value = false;
+        await addDoc(collection(db, 'adminActions'), {
+          userId: selectedUser.value.id,
+          username: selectedUser.value.name, // Add the username field
+          action: action,
+          comment: adminComment.value,
+          timestamp: new Date()
+        });
+        loadAdminActions();
       } catch (error) {
-        snackbar.value = { show: true, message: 'Error sending notification: ' + error.message, color: 'error' };
+        snackbar.value = { show: true, message: 'Error logging admin action: ' + error.message, color: 'error' };
       }
     };
 
-    const showNotificationPrompt = () => {
-      notificationPrompt.value = true;
-    };
+    const userHeaders = [
+      { text: 'Name', value: 'name' },
+      { text: 'Email', value: 'email' },
+      { text: 'Actions', value: 'actions', sortable: false }
+    ];
 
-    const currentUsers = computed(() => {
-      return users.value.filter(user => user.active).map(user => ({ id: user.id, name: user.name, email: user.email }));
+    const actionHeaders = [
+      { text: 'Username', value: 'username' }, // Add the username field
+      { text: 'Action', value: 'action' },
+      { text: 'Reason', value: 'comment' }, // Title for reason
+      { text: 'Timestamp', value: 'timestamp' }
+    ];
+
+    const filteredUsers = computed(() => {
+      return users.value.filter(user => 
+        user.name.toLowerCase().includes(searchUserName.value.toLowerCase()));
     });
 
-    const deactivatedUsers = computed(() => {
-      return users.value.filter(user => !user.active).map(user => ({ id: user.id, name: user.name, email: user.email }));
+    const paginatedUsers = computed(() => {
+      const startIndex = (currentPage.value - 1) * itemsPerPage.value;
+      const endIndex = startIndex + itemsPerPage.value;
+      return filteredUsers.value.slice(startIndex, endIndex);
     });
 
-    const chartOptions = ref(null);
-
-    const updateChartOptions = () => {
-      chartOptions.value = {
-        chart: {
-          type: 'line'
-        },
-        title: {
-          text: 'User and Children Statistics'
-        },
-        series: [
-          {
-            name: 'Users',
-            data: [userCount.value]
-          },
-          {
-            name: 'Children',
-            data: [childrenCount.value]
+    const filteredAdminActions = computed(() => {
+      const recentActions = {};
+      if (Array.isArray(adminActions.value)) {
+        adminActions.value.forEach(action => {
+          if (!recentActions[action.userId] || action.timestamp.seconds > recentActions[action.userId].timestamp.seconds) {
+            recentActions[action.userId] = action;
           }
-        ]
-      };
-    };
+        });
+      }
+      return Object.values(recentActions);
+    });
+
+    const currentPage = ref(1);
+    const itemsPerPage = ref(5);
 
     onMounted(() => {
       loadUsers();
-      loadChildren();
-      loadDonations();
+      loadAdminActions();
     });
 
     return {
       userCount,
-      childrenCount,
       users,
-      children,
-      donations,
-      currentUsers,
-      deactivatedUsers,
-      chartOptions,
-      searchUserId,
-      searchedUser,
-      notificationPrompt,
-      notificationMessage,
+      adminActions,
+      filteredAdminActions,
+      searchUserName,
+      selectedUser,
+      adminComment,
       confirmDeactivateDialog,
       confirmActivateDialog,
-      confirmActivateDialogUserId,
-      searchUserById,
-      resetPassword,
+      userHeaders,
+      actionHeaders,
+      filteredUsers,
+      paginatedUsers,
+      currentPage,
+      itemsPerPage,
+      promptDeactivateUser,
+      promptActivateUser,
       deactivateUser,
-      confirmDeactivateUser,
       activateUser,
-      confirmActivateUser,
-      sendNotification,
-      showNotificationPrompt,
-      snackbar
+      clearSearch,
+      snackbar,
     };
   }
 };
@@ -394,11 +307,17 @@ export default {
 
 .floating-card {
   background-color: #f5f5f5;
+  border-radius: 15px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease-in-out;
+}
+
+.floating-card:hover {
+  transform: translateY(-5px);
 }
 
 .v-text-field,
-.v-select,
-.v-file-input {
+.v-textarea {
   margin-bottom: 10px;
 }
 
@@ -410,18 +329,28 @@ export default {
   border-radius: 50%;
 }
 
-.user-table th,
-.user-table td {
-  padding: 16px 24px;
+.v-data-table th,
+.v-data-table td {
+  padding: 8px;
   text-align: left;
   vertical-align: middle;
 }
 
-.user-table th {
+.v-data-table th {
   background-color: #f5f5f5;
 }
 
-.user-table tbody tr:nth-child(odd) {
+.v-data-table tbody tr:nth-child(odd) {
   background-color: #f9f9f9;
+}
+
+.title-text {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.v-chip {
+  font-size: 16px;
+  font-weight: bold;
 }
 </style>

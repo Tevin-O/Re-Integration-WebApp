@@ -26,6 +26,7 @@ export default VuetifyComponents;
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getFunctions } from 'firebase/functions';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -42,8 +43,9 @@ const firebaseConfig = {
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
 const db = getFirestore(firebaseApp);
+const functions = getFunctions(firebaseApp);
 
-export { auth, db };
+export { auth, db, functions };
 
 loadFonts();
 
@@ -52,4 +54,5 @@ createApp(App)
   .use(store)
   .use(vuetify)
   .use(HighchartsVue)
+  .use(VuetifyComponents)
   .mount('#app');
