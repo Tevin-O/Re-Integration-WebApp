@@ -3,6 +3,15 @@
     <v-app-bar app>
       <v-toolbar-title>Welcome, {{ userName }}</v-toolbar-title>
       <v-spacer></v-spacer>
+      <v-btn icon @click="notificationsMenu = true">
+        <v-icon>fas fa-bell</v-icon>
+        <v-badge
+          color="red"
+          :content="unreadCount"
+          class="badge"
+          v-if="unreadCount > 0"
+        ></v-badge>
+      </v-btn>
       <v-btn icon @click="lockScreen">
         <v-icon>fas fa-lock</v-icon>
       </v-btn>
@@ -33,12 +42,44 @@
         <component :is="currentComponent"></component>
       </v-container>
     </v-main>
+
+    <!-- Notification Dialog -->
+    <v-dialog v-model="notificationsMenu" max-width="500">
+      <v-card>
+        <v-card-title class="headline">Notifications</v-card-title>
+        <v-divider></v-divider>
+        <v-list>
+          <v-list-item v-for="(notification, index) in notifications" :key="index">
+            <v-list-item-content>
+              <v-list-item-title class="notification-text">{{ notification.message }}</v-list-item-title>
+            </v-list-item-content>
+            <v-list-item-action>
+              <v-btn icon small @click="markAsRead(index)">
+                <v-icon small>fas fa-times</v-icon>
+              </v-btn>
+            </v-list-item-action>
+          </v-list-item>
+        </v-list>
+        <v-divider></v-divider>
+        <v-card-actions>
+          <v-btn text small @click="clearAll">Clear All</v-btn>
+          <v-spacer></v-spacer>
+          <v-btn text small @click="notificationsMenu = false">Close</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
+
+
+
+
 
 <script>
 import { ref, onMounted } from 'vue';
 import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
+import { db } from '../main'; // Import Firestore instance as db
+import { collection, query, onSnapshot, where } from 'firebase/firestore';
 import UserProfile from '../components/UserProfile.vue';
 import UserConnections from '../components/UserConnections.vue';
 import CommonHomePage from '../components/CommonHomepage.vue';
@@ -74,6 +115,9 @@ export default {
     return {
       drawer: true,
       currentComponent: 'CommonHomePage',
+      notifications: [],
+      notificationsMenu: false,
+      unreadCount: 0,
       links: [
         { icon: 'fas fa-home', text: 'Home', component: 'CommonHomePage', path: '/commonhomepage' },
         { icon: 'fas fa-user', text: 'Profile', component: 'UserProfile', path: '/user/profile' },
@@ -112,7 +156,44 @@ export default {
         console.error('Logout error', error);
         alert('Failed to logout. Please try again.');
       }
-    }
+    },
+    markAsRead(index) {
+      this.notifications.splice(index, 1);
+      this.unreadCount = this.notifications.length;
+    },
+    clearAll() {
+      this.notifications = [];
+      this.unreadCount = 0;
+    },
+    fetchNotifications() {
+      const auth = getAuth();
+      const user = auth.currentUser;
+      if (user) {
+        const userId = user.uid; // Assume user ID is stored in the uid field
+        const connectionsRef = collection(db, 'connections');
+        const q = query(connectionsRef, where('userId', '==', userId));
+        onSnapshot(q, (snapshot) => {
+          snapshot.docChanges().forEach((change) => {
+            if (change.type === 'added' || change.type === 'modified') {
+              const connection = change.doc.data();
+              let message = '';
+              if (connection.status === 'pending') {
+                message = 'Pending connection, please be patient.';
+              } else if (connection.status === 'confirmed') {
+                message = 'You will receive a confirmation email to proceed forward.';
+              } else if (connection.status === 'rejected') {
+                message = 'Connection does not match.';
+              }
+              this.notifications.push({ message });
+              this.unreadCount = this.notifications.length;
+            }
+          });
+        });
+      }
+    },
+  },
+  mounted() {
+    this.fetchNotifications();
   },
   watch: {
     '$route'(to, from) {
@@ -122,6 +203,8 @@ export default {
     }
   }
 };
+
+
 </script>
 
 <style scoped>
@@ -158,4 +241,70 @@ export default {
     transform: translateY(-10px);
   }
 }
+
+.v-card {
+  max-width: 500px;
+  padding: 10px;
+  border-radius: 8px;
+  background-color: #f5f5f5;
+}
+
+.v-card-title {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.v-list-item {
+  padding: 10px 0;
+}
+
+.v-list-item-content {
+  margin-left: 10px;
+}
+
+.v-list-item-title {
+  font-size: 16px;
+  color: #333;
+}
+
+.notification-text {
+  white-space: normal; /* Ensure text wraps */
+  word-wrap: break-word;
+}
+
+.v-list-item-subtitle {
+  font-size: 14px;
+  color: #666;
+}
+
+.v-list-item-action {
+  margin-left: auto;
+  padding-left: 10px;
+}
+
+.v-btn {
+  margin: 0;
+  padding: 0;
+}
+
+.v-divider {
+  margin: 10px 0;
+}
+
+.v-badge {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  font-size: 12px;
+  height: 20px;
+  width: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: red;
+  color: white;
+}
 </style>
+
+

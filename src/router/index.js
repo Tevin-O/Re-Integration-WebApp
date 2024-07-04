@@ -3,12 +3,11 @@ import HomeView from '../views/HomeView.vue';
 import LoginUi from '../views/LoginUi.vue';
 import Feed from '../views/Feed.vue';
 import Signin from '../views/Signin.vue';
-import VerifyEmail from '../views/VerifyEmail.vue'; 
+import VerifyEmail from '../views/VerifyEmail.vue';
 import Register2 from '../components/Register2.vue';
 import ForgotPassword from '../components/ForgotPassword.vue';
 import Login from '../components/Login.vue';
 import AdminDash from '../components/AdminDash.vue';
-//import AdminManagement from '../components/AdminManagement.vue';
 import UserDash from '../components/UserDash.vue';
 import ManageUsers from '../components/ManageUsers.vue';
 import ManageChildren from '../components/ManageChildren.vue';
@@ -17,6 +16,8 @@ import UserProfile from '../components/UserProfile.vue';
 import UserConnections from '../components/UserConnections.vue';
 import CommonHomepage from '../components/CommonHomepage.vue';
 import Donations from '../components/Donations.vue';
+import StatisticalData from '../components/StatisticalData.vue';
+import TabularData from '../components/TabularData.vue';
 
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
@@ -84,7 +85,21 @@ const routes = [
       {
         path: 'users',
         component: ManageUsers,
-        meta: { requiresAdmin: true, requiresAuth: true }
+        meta: { requiresAdmin: true, requiresAuth: true },
+        children: [
+          {
+            path: 'statistics',
+            name: 'statistical-data',
+            component: StatisticalData,
+            meta: { requiresAdmin: true, requiresAuth: true }
+          },
+          {
+            path: 'tabular',
+            name: 'tabular-data',
+            component: TabularData,
+            meta: { requiresAdmin: true, requiresAuth: true }
+          }
+        ]
       },
       {
         path:'children',
@@ -137,7 +152,7 @@ const getCurrentUser = () => {
   });
 };
 
-router.beforeEach(async (to,from, next) => {
+router.beforeEach(async (to, from, next) => {
   if (to.matched.some(record => record.meta.requiresAuth)) {
     const user = await getCurrentUser();
     if (user) {

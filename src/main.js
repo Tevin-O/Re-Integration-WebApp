@@ -1,37 +1,34 @@
-import { createApp } from 'vue'
-import App from './App.vue'
-import router from './router'
-import store from './store'
-import vuetify from './plugins/vuetify'
-import { loadFonts } from './plugins/webfontloader'
-import 'material-design-icons-iconfont/dist/material-design-icons.css'
-import '@mdi/font/css/materialdesignicons.css'
+import { createApp } from 'vue';
+import App from './App.vue';
+import router from './router';
+import store from './store';
+import vuetify from './plugins/vuetify';
+import { loadFonts } from './plugins/webfontloader';
+import 'material-design-icons-iconfont/dist/material-design-icons.css';
+import '@mdi/font/css/materialdesignicons.css';
 import HighchartsVue from 'highcharts-vue';
 
-import * as components from './components'
+import * as components from './components';
 
-const componentList = components?.default
+const componentList = components?.default;
 
 const VuetifyComponents = {
-    install(app) {
-        Object.keys(componentList).forEach((name) => {
-           app.component(name, componentList[name])
-        })
-    },
-}
- 
- 
-export default VuetifyComponents
+  install(app) {
+    Object.keys(componentList).forEach((name) => {
+      app.component(name, componentList[name]);
+    });
+  },
+};
+
+export default VuetifyComponents;
 
 // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-//import { getAuth } from "firebase/auth";
-import { getAuth } from "firebase/auth";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+import { getFunctions } from 'firebase/functions';
 
 // Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyAxVsu3o5cAPMb1VoC-LyrLBKn5gw7ikJE",
   authDomain: "reintegration-system.firebaseapp.com",
@@ -45,17 +42,17 @@ const firebaseConfig = {
 // Initialize Firebase
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
+const db = getFirestore(firebaseApp);
+const functions = getFunctions(firebaseApp);
 
-export{auth};
+export { auth, db, functions };
 
-loadFonts()
-
+loadFonts();
 
 createApp(App)
   .use(router)
   .use(store)
   .use(vuetify)
   .use(HighchartsVue)
+  .use(VuetifyComponents)
   .mount('#app');
-
-

@@ -1,169 +1,295 @@
 <template>
   <v-container>
-    <h2>Manage Connections</h2>
-    <v-row v-if="connections.length > 0">
-      <v-col v-for="connection in connections" :key="connection.id" cols="12" md="4">
-        <v-card class="mx-auto my-3" elevation="2" style="background-color: #f0f0f0; border-radius: 10px;">
-          <v-card-text>
-            <h3>User Details</h3>
-            <p><strong>Name:</strong> {{ connection.userName }}</p>
-            <p><strong>Age:</strong> {{ connection.userAge }}</p>
-            <p><strong>Phone Number:</strong> {{ connection.userPhoneNumber }}</p>
-            <p><strong>Description:</strong> {{ connection.description }}</p>
-            <p><strong>Document:</strong> <a :href="connection.docs_Url" target="_blank">View Document</a></p>
+    <v-row>
+      <!-- Manage Connections Title and Pending Count -->
+      <v-col cols="12">
+        <v-card class="mx-auto my-5 floating-card" elevation="2">
+          <v-card-title class="d-flex justify-center align-center">
+            <v-icon class="mr-2">fas fa-network-wired</v-icon>
+            <h2 class="title-text">Manage Connections</h2>
+          </v-card-title>
+          <v-card-text class="text-center">
+            <v-chip class="ma-2" color="primary" text-color="white">
+              <v-icon left>fas fa-user-clock</v-icon> Pending connections: {{ pendingConnectionsCount }}
+            </v-chip>
           </v-card-text>
+        </v-card>
+      </v-col>
+
+      <!-- Navigation Links -->
+      <v-col cols="12" class="d-flex justify-center">
+        <v-btn @click="fetchPendingConnections" color="primary" class="ma-2">
+          <v-icon left>fas fa-eye</v-icon> Show Pending Connections
+        </v-btn>
+      </v-col>
+
+      <!-- Pending Connections List -->
+      <v-col cols="12">
+        <v-card class="mx-auto my-5 floating-card" elevation="2">
+          <v-card-title>
+            <h3 class="title-text">Pending Connections</h3>
+          </v-card-title>
           <v-card-text>
-            <h3>Child Details</h3>
-            <v-img :src="connection.child.photoUrl" height="200px" contain></v-img>
-            <p><strong>Name:</strong> {{ connection.child.name }}</p>
-            <p><strong>Age:</strong> {{ connection.child.age }}</p>
+            <v-data-table :headers="connectionHeaders" :items="pendingConnections" class="elevation-1" item-key="id" :items-per-page="5">
+              <template v-slot:item.actions="{ item }">
+                <v-btn small @click="approveOrReject(item, 'approve')">Approve</v-btn>
+                <v-btn small color="error" @click="approveOrReject(item, 'reject')">Reject</v-btn>
+              </template>
+              <template v-slot:item.user="{ item }">
+                {{ item.userName }}
+              </template>
+              <template v-slot:item.phone="{ item }">
+                {{ item.userPhoneNumber }}
+              </template>
+              <template v-slot:item.docs_Url="{ item }">
+                <a :href="item.docs_Url" target="_blank">View Document</a>
+              </template>
+            </v-data-table>
           </v-card-text>
-          <v-card-actions>
-            <v-btn color="success" @click="confirmConnection(connection)">Confirm</v-btn>
-            <v-btn color="error" @click="rejectConnection(connection)">Reject</v-btn>
-          </v-card-actions>
+        </v-card>
+      </v-col>
+
+      <!-- Admin Logs -->
+      <v-col cols="12">
+        <v-card class="mx-auto my-5 floating-card" elevation="2">
+          <v-card-title>
+            <h3 class="title-text">Admin Logs</h3>
+          </v-card-title>
+          <v-card-text>
+            <v-data-table :headers="logHeaders" :items="filteredAdminLogs" class="elevation-1" item-key="id" :items-per-page="5">
+              <template v-slot:item.comment="{ item }">
+                {{ item.adminComment }}
+              </template>
+            </v-data-table>
+          </v-card-text>
         </v-card>
       </v-col>
     </v-row>
 
-    <h2>Admin Actions</h2>
-    <v-data-table
-      :headers="actionHeaders"
-      :items="actions"
-      class="elevation-1"
-    ></v-data-table>
+    <!-- Comment Dialog for Approval/Rejection -->
+    <v-dialog v-model="commentDialog.show" max-width="500px">
+      <v-card>
+        <v-card-title class="headline">{{ commentDialog.action === 'approve' ? 'Approve Connection' : 'Reject Connection' }}</v-card-title>
+        <v-card-text>
+          <v-textarea v-model="adminComment" label="Comment" outlined dense></v-textarea>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn @click="commentDialog.show = false">Cancel</v-btn>
+          <v-btn @click="handleApproval" color="primary">{{ commentDialog.action === 'approve' ? 'Approve' : 'Reject' }}</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
-    <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="3000">
+    <!-- Snackbar for Notifications -->
+    <v-snackbar v-model="snackbar.show" :color="snackbar.color" top right>
       {{ snackbar.message }}
+      <v-btn text @click="snackbar.show = false">Close</v-btn>
     </v-snackbar>
   </v-container>
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
-import { getFirestore, collection, query, getDocs, updateDoc, doc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { ref, computed, onMounted } from 'vue';
+import { getFirestore, collection, getDocs, updateDoc, doc, addDoc } from 'firebase/firestore';
 
 export default {
   name: 'ManageConnections',
   setup() {
-    const connections = ref([]);
-    const actions = ref([]);
+    const db = getFirestore();
+    const pendingConnections = ref([]);
+    const pendingConnectionsCount = ref(0);
+    const adminLogs = ref([]);
     const snackbar = ref({
       show: false,
       message: '',
       color: ''
     });
-    const db = getFirestore();
+    const adminComment = ref('');
+    const commentDialog = ref({
+      show: false,
+      action: '',
+      connection: null
+    });
 
-    const actionHeaders = [
-      { text: 'User Name', value: 'userName' },
-      { text: 'Phone Number', value: 'userPhoneNumber' },
-      { text: 'Action', value: 'adminAction' },
-      { text: 'Timestamp', value: 'adminActionTimestamp' },
+    const loadPendingConnections = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, 'connections'));
+        pendingConnections.value = querySnapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter(connection => connection.status === 'pending');
+        pendingConnectionsCount.value = pendingConnections.value.length;
+      } catch (error) {
+        console.error('Error loading connections:', error);
+      }
+    };
+
+    const fetchPendingConnections = () => {
+      loadPendingConnections();
+    };
+
+    const approveOrReject = (connection, action) => {
+      if (action === 'approve' || action === 'reject') {
+        commentDialog.value = {
+          show: true,
+          action,
+          connection
+        };
+      } else {
+        console.error('Invalid action');
+      }
+    };
+
+    const handleApproval = async () => {
+      const { connection, action } = commentDialog.value;
+      const connectionRef = doc(db, 'connections', connection.id);
+      
+      try {
+        await updateDoc(connectionRef, { status: action, adminComment: adminComment.value });
+
+        await addDoc(collection(db, 'adminLogs'), {
+          connectionId: connection.id,
+          action,
+          adminComment: adminComment.value,
+          timestamp: new Date()
+        });
+
+        snackbar.value = {
+          show: true,
+          message: `Connection ${action}ed successfully`,
+          color: 'success'
+        };
+
+        commentDialog.value.show = false;
+        adminComment.value = '';
+        loadPendingConnections();
+        loadAdminLogs();
+      } catch (error) {
+        console.error('Error handling approval:', error);
+        snackbar.value = {
+          show: true,
+          message: 'An error occurred while processing the request.',
+          color: 'error'
+        };
+      }
+    };
+
+    const loadAdminLogs = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, 'adminLogs'));
+        adminLogs.value = querySnapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .reduce((acc, log) => {
+            if (!acc.some(existingLog => existingLog.connectionId === log.connectionId && existingLog.action === log.action)) {
+              acc.push(log);
+            }
+            return acc;
+          }, []);
+      } catch (error) {
+        console.error('Error loading admin logs:', error);
+      }
+    };
+
+    const connectionHeaders = [
+      { text: 'Name', value: 'user' },
+      { text: 'Phone Number', value: 'phone' },
+      { text: 'Requested Date', value: 'requestedDate' },
+      { text: 'Document Link', value: 'docs_Url', sortable: false },
+      { text: 'Actions', value: 'actions', sortable: false }
     ];
 
-    const fetchConnections = async () => {
-      try {
-        const q = query(collection(db, 'connections'));
-        const querySnapshot = await getDocs(q);
+    const logHeaders = [
+      { text: 'Connection ID', value: 'connectionId' },
+      { text: 'Action', value: 'action' },
+      { text: 'Admin Comment', value: 'adminComment' },
+      { text: 'Timestamp', value: 'timestamp' }
+    ];
 
-        connections.value = await Promise.all(querySnapshot.docs.map(async (connectionDoc) => {
-          const connectionData = connectionDoc.data();
-          const childId = connectionData.childId;
-          if (!childId) {
-            throw new Error(`Missing childId for connection ${connectionDoc.id}`);
-          }
-          console.log(`Fetching child document for childId: ${childId}`);
-          const childDocRef = doc(db, `children/${childId}`);
-          const childDoc = await getDoc(childDocRef);
-          return {
-            id: connectionDoc.id,
-            ...connectionData,
-            child: childDoc.exists() ? childDoc.data() : {}
-          };
-        }));
-
-        // Populate actions based on connections
-        actions.value = connections.value.map(conn => ({
-          userName: conn.userName,
-          userPhoneNumber: conn.userPhoneNumber,
-          adminAction: conn.adminAction || 'Pending',
-          adminActionTimestamp: conn.adminActionTimestamp ? conn.adminActionTimestamp.toDate().toLocaleString() : 'N/A'
-        }));
-      } catch (error) {
-        if (error.code === 'permission-denied') {
-          showSnackbar('Permission denied. Please check your Firestore rules.', 'error');
-        } else {
-          showSnackbar(`Error: ${error.message}`, 'error');
+    const filteredAdminLogs = computed(() => {
+      const recentActions = {};
+      adminLogs.value.forEach(log => {
+        if (!recentActions[log.connectionId] || log.timestamp.seconds > recentActions[log.connectionId].timestamp.seconds) {
+          recentActions[log.connectionId] = log;
         }
-      }
-    };
-
-    const confirmConnection = async (connection) => {
-      try {
-        await updateDoc(doc(db, 'connections', connection.id), {
-          status: 'confirmed',
-          adminAction: 'Confirmed',
-          adminActionTimestamp: serverTimestamp()
-        });
-        await updateDoc(doc(db, 'children', connection.childId), {
-          connectionStatus: 'confirmed'
-        });
-        showSnackbar('Connection confirmed successfully', 'success');
-        fetchConnections();
-      } catch (error) {
-        showSnackbar(`Error: ${error.message}`, 'error');
-      }
-    };
-
-    const rejectConnection = async (connection) => {
-      try {
-        await updateDoc(doc(db, 'connections', connection.id), {
-          status: 'rejected',
-          adminAction: 'Rejected',
-          adminActionTimestamp: serverTimestamp()
-        });
-        await updateDoc(doc(db, 'children', connection.childId), {
-          connectionStatus: 'rejected'
-        });
-        showSnackbar('Connection rejected successfully', 'success');
-        fetchConnections();
-      } catch (error) {
-        showSnackbar(`Error: ${error.message}`, 'error');
-      }
-    };
-
-    const showSnackbar = (message, color) => {
-      snackbar.value.message = message;
-      snackbar.value.color = color;
-      snackbar.value.show = true;
-    };
+      });
+      return Object.values(recentActions);
+    });
 
     onMounted(() => {
-      fetchConnections();
+      loadPendingConnections();
+      loadAdminLogs();
     });
 
     return {
-      connections,
-      actions,
+      pendingConnections,
+      pendingConnectionsCount,
+      fetchPendingConnections,
+      approveOrReject,
+      handleApproval,
+      adminComment,
+      commentDialog,
+      connectionHeaders,
+      adminLogs,
+      logHeaders,
       snackbar,
-      actionHeaders,
-      confirmConnection,
-      rejectConnection
+      filteredAdminLogs
     };
   }
 };
 </script>
 
 <style scoped>
-.v-img {
-  border-radius: 10px;
-  object-fit: cover;
-}
-.v-avatar img {
-  border-radius: 10px;
-}
 .v-card {
-  border-radius: 10px;
+  margin: 20px;
+  padding: 20px;
+}
+
+.floating-card {
+  background-color: #f5f5f5;
+  border-radius: 15px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease-in-out;
+}
+
+.floating-card:hover {
+  transform: translateY(-5px);
+}
+
+.v-text-field,
+.v-textarea {
+  margin-bottom: 10px;
+}
+
+.v-btn {
+  margin-top: 10px;
+}
+
+.v-avatar img {
+  border-radius: 50%;
+}
+
+.v-data-table th,
+.v-data-table td {
+  padding: 8px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.v-data-table th {
+  background-color: #f5f5f5;
+}
+
+.v-data-table tbody tr:nth-child(odd) {
+  background-color: #f9f9f9;
+}
+
+.title-text {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.v-chip {
+  font-size: 16px;
+  font-weight: bold;
 }
 </style>
