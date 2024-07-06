@@ -166,7 +166,7 @@ export default {
     const db = getFirestore();
     const storage = getStorage();
     const children = ref([]);
-    const child = ref({ id: '', name: '', address: '', age: '', parents: 'known', connectionStatus: 'unknown', photoUrl: '' });
+    const child = ref({ name: '', address: '', age: '', parents: 'known', connectionStatus: 'unknown', photoUrl: '' });
     const searchChildName = ref('');
     const isEditing = ref(false);
     const showAddChildForm = ref(false);
@@ -202,36 +202,64 @@ export default {
     };
 
     const addChild = async () => {
-      if (file.value) {
-        const photoRef = storageRef(storage, `children_photos/${file.value.name}`);
-        await uploadBytes(photoRef, file.value);
-        child.value.photoUrl = await getDownloadURL(photoRef);
+      try {
+        if (file.value) {
+          const photoRef = storageRef(storage, `children_photos/${file.value.name}`);
+          await uploadBytes(photoRef, file.value);
+          child.value.photoUrl = await getDownloadURL(photoRef);
+        }
+        const docRef = await addDoc(collection(db, 'children'), child.value);
+        // Update the child object with the generated document ID
+        await updateDoc(doc(db, 'children', docRef.id), { id: docRef.id });
+        child.value.id = docRef.id;
+        snackbar.value = { show: true, message: 'Child added successfully', color: 'success' };
+        loadChildren();
+      } catch (error) {
+        console.error('Error adding child: ', error);
+        snackbar.value = { show: true, message: `Error adding child: ${error.message}`, color: 'error' };
       }
-      const docRef = await addDoc(collection(db, 'children'), child.value);
-      await updateDoc(docRef, { id: docRef.id });
-      child.value.id = docRef.id;
-      snackbar.value = { show: true, message: 'Child added successfully', color: 'success' };
-      loadChildren();
     };
 
     const updateChild = async () => {
-      const childRef = doc(db, 'children', child.value.id);
-      if (file.value) {
-        const photoRef = storageRef(storage, `children_photos/${file.value.name}`);
-        await uploadBytes(photoRef, file.value);
-        child.value.photoUrl = await getDownloadURL(photoRef);
+      try {
+        // Ensure the child object has a valid id
+        if (!child.value.id) {
+          throw new Error("Invalid child ID");
+        }
+
+        const childRef = doc(db, 'children', child.value.id);
+
+        // Handle file upload if a new file is selected
+        if (file.value) {
+          const photoRef = storageRef(storage, `children_photos/${file.value.name}`);
+          await uploadBytes(photoRef, file.value);
+          child.value.photoUrl = await getDownloadURL(photoRef);
+        }
+
+        // Update the document
+        await updateDoc(childRef, child.value);
+
+        snackbar.value = { show: true, message: 'Child updated successfully', color: 'success' };
+        loadChildren();
+        resetForm(); // Reset form after update
+        isEditing.value = false;
+      } catch (error) {
+        console.error('Error updating child: ', error);
+        snackbar.value = { show: true, message: `Error updating child: ${error.message}`, color: 'error' };
       }
-      await updateDoc(childRef, child.value);
-      snackbar.value = { show: true, message: 'Child updated successfully', color: 'success' };
-      loadChildren();
     };
 
     const deleteChild = async () => {
-      const childRef = doc(db, 'children', selectedChild.value.id);
-      await deleteDoc(childRef);
-      snackbar.value = { show: true, message: 'Child deleted successfully', color: 'success' };
-      confirmDeleteDialog.value = false;
-      loadChildren();
+      try {
+        const childRef = doc(db, 'children', selectedChild.value.id);
+        await deleteDoc(childRef);
+        snackbar.value = { show: true, message: 'Child deleted successfully', color: 'success' };
+        confirmDeleteDialog.value = false;
+        loadChildren();
+      } catch (error) {
+        console.error('Error deleting child: ', error);
+        snackbar.value = { show: true, message: `Error deleting child: ${error.message}`, color: 'error' };
+      }
     };
 
     const promptDeleteChild = (child) => {
@@ -254,15 +282,21 @@ export default {
       }
     };
 
-    const promptEditChild = async (child) => {
-      const docRef = doc(db, 'children', child.id);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        child.value = { id: docRef.id, ...data };
-        isEditing.value = true;
-      } else {
-        snackbar.value = { show: true, message: 'No such document!', color: 'error' };
+    const promptEditChild = async (childToEdit) => {
+      try {
+        const docRef = doc(db, 'children', childToEdit.id);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          child.value = { id: docRef.id, ...data };
+          isEditing.value = true;
+        } else {
+          snackbar.value = { show: true, message: 'No such document!', color: 'error' };
+        }
+      } catch (error) {
+        console.error('Error fetching child: ', error);
+        snackbar.value = { show: true, message: `Error fetching child: ${error.message}`, color: 'error' };
       }
     };
 
