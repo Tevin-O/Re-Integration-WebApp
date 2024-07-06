@@ -57,6 +57,25 @@
           </v-card-title>
           <v-card-text>
             <v-data-table :headers="logHeaders" :items="filteredAdminLogs" class="elevation-1" item-key="id" :items-per-page="5">
+              <template v-slot:header>
+                <tr>
+                  <th>User</th>
+                  <th>Action</th>
+                  <th>Admin Comment</th>
+                  <th>Timestamp</th>
+                </tr>
+              </template>
+              <template v-slot:item.user="{ item }">
+                {{ item.userName }}
+              </template>
+              <template v-slot:item.action="{ item }">
+                <v-btn :color="item.action === 'approve' ? 'success' : 'error'" small>
+                  {{ item.action.charAt(0).toUpperCase() + item.action.slice(1) }}
+                </v-btn>
+              </template>
+              <template v-slot:item.timestamp="{ item }">
+                {{ formatTimestamp(item.timestamp) }}
+              </template>
               <template v-slot:item.comment="{ item }">
                 {{ item.adminComment }}
               </template>
@@ -92,11 +111,13 @@
 <script>
 import { ref, computed, onMounted } from 'vue';
 import { getFirestore, collection, getDocs, updateDoc, doc, addDoc } from 'firebase/firestore';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 
 export default {
   name: 'ManageConnections',
   setup() {
     const db = getFirestore();
+    const auth = getAuth();
     const pendingConnections = ref([]);
     const pendingConnectionsCount = ref(0);
     const adminLogs = ref([]);
@@ -112,6 +133,16 @@ export default {
       connection: null
     });
 
+    const user = ref(null);
+
+    onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        user.value = currentUser;
+      } else {
+        console.log("No user is signed in");
+      }
+    });
+
     const loadPendingConnections = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, 'connections'));
@@ -121,6 +152,11 @@ export default {
         pendingConnectionsCount.value = pendingConnections.value.length;
       } catch (error) {
         console.error('Error loading connections:', error);
+        snackbar.value = {
+          show: true,
+          message: 'Error loading connections.',
+          color: 'error'
+        };
       }
     };
 
@@ -145,12 +181,10 @@ export default {
       const connectionRef = doc(db, 'connections', connection.id);
       
       try {
-        await updateDoc(connectionRef, { status: action, adminComment: adminComment.value });
-
-        await addDoc(collection(db, 'adminLogs'), {
-          connectionId: connection.id,
-          action,
+        await updateDoc(connectionRef, {
+          status: action,
           adminComment: adminComment.value,
+          adminAction: action,
           timestamp: new Date()
         });
 
@@ -176,18 +210,29 @@ export default {
 
     const loadAdminLogs = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, 'adminLogs'));
+        const querySnapshot = await getDocs(collection(db, 'connections'));
         adminLogs.value = querySnapshot.docs
-          .map(doc => ({ id: doc.id, ...doc.data() }))
-          .reduce((acc, log) => {
-            if (!acc.some(existingLog => existingLog.connectionId === log.connectionId && existingLog.action === log.action)) {
-              acc.push(log);
-            }
-            return acc;
-          }, []);
+          .map(doc => ({
+            connectionId: doc.id,
+            userName: doc.data().userName,
+            action: doc.data().adminAction,
+            adminComment: doc.data().adminComment,
+            timestamp: doc.data().timestamp
+          }))
+          .filter(log => log.action); // Only include logs that have an action (approved/rejected)
       } catch (error) {
         console.error('Error loading admin logs:', error);
+        snackbar.value = {
+          show: true,
+          message: 'Error loading admin logs.',
+          color: 'error'
+        };
       }
+    };
+
+    const formatTimestamp = (timestamp) => {
+      const date = timestamp.toDate();
+      return date.toLocaleString();
     };
 
     const connectionHeaders = [
@@ -199,7 +244,7 @@ export default {
     ];
 
     const logHeaders = [
-      { text: 'Connection ID', value: 'connectionId' },
+      { text: 'User', value: 'userName' },
       { text: 'Action', value: 'action' },
       { text: 'Admin Comment', value: 'adminComment' },
       { text: 'Timestamp', value: 'timestamp' }
@@ -232,7 +277,8 @@ export default {
       adminLogs,
       logHeaders,
       snackbar,
-      filteredAdminLogs
+      filteredAdminLogs,
+      formatTimestamp
     };
   }
 };
