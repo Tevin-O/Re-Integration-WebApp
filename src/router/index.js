@@ -17,7 +17,6 @@ import UserConnections from '../components/UserConnections.vue';
 import CommonHomepage from '../components/CommonHomepage.vue';
 import Donations from '../components/Donations.vue';
 import StatisticalData from '../components/StatisticalData.vue';
-import TabularData from '../components/TabularData.vue';
 
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
@@ -91,12 +90,6 @@ const routes = [
             path: 'statistics',
             name: 'statistical-data',
             component: StatisticalData,
-            meta: { requiresAdmin: true, requiresAuth: true }
-          },
-          {
-            path: 'tabular',
-            name: 'tabular-data',
-            component: TabularData,
             meta: { requiresAdmin: true, requiresAuth: true }
           }
         ]

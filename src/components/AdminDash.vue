@@ -80,7 +80,6 @@ import ManageChildren from '../components/ManageChildren.vue';
 import ManageConnections from '../components/ManageConnections.vue';
 import CommonHomePage from '../components/CommonHomepage.vue';
 import StatisticalData from '../components/StatisticalData.vue';
-import TabularData from '../components/TabularData.vue';
 import { signOut } from 'firebase/auth';
 import { auth } from '../main'; // Import auth from main.js
 
@@ -94,8 +93,7 @@ export default {
         { icon: 'fas fa-user', text: 'Manage Users', component: 'ManageUsers', path: '/admin/users' },
         { icon: 'fas fa-child', text: 'Manage Children', component: 'ManageChildren', path: '/admin/children' },
         { icon: 'fas fa-link', text: 'Connections', component: 'ManageConnections', path: '/admin/connections' },
-        { icon: 'fas fa-chart-line', text: 'Statistical Data', component: 'StatisticalData', path: '/admin/users/statistics' },
-        { icon: 'fas fa-table', text: 'Tabular Data', component: 'TabularData', path: '/admin/users/tabular' }
+        { icon: 'fas fa-chart-line', text: 'Statistical Data', component: 'StatisticalData', path: '/admin/users/statistics' }
       ],
       previousComponent: null,
       notifications: [],
@@ -108,8 +106,7 @@ export default {
     ManageUsers,
     ManageChildren,
     ManageConnections,
-    StatisticalData,
-    TabularData
+    StatisticalData
   },
   methods: {
     navigateTo(component) {
